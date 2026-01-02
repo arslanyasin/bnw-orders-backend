@@ -114,6 +114,18 @@ export class BankOrder extends Document {
 
 export const BankOrderSchema = SchemaFactory.createForClass(BankOrder);
 
+// Virtual populate for delivery challan
+BankOrderSchema.virtual('deliveryChallan', {
+  ref: 'DeliveryChallan',
+  localField: '_id',
+  foreignField: 'bankOrderId',
+  justOne: true,
+});
+
+// Ensure virtuals are included in JSON and Object transformations
+BankOrderSchema.set('toJSON', { virtuals: true });
+BankOrderSchema.set('toObject', { virtuals: true });
+
 // Indexes
 // Note: refNo and poNumber already have indexes from @Prop({ index: true })
 BankOrderSchema.index({ cnic: 1, giftCode: 1 });

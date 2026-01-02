@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Body,
   Param,
   Delete,
@@ -20,6 +21,9 @@ import {
 } from '@nestjs/swagger';
 import { PurchaseOrdersService } from './purchase-orders.service';
 import { CreatePurchaseOrderDto } from './dto/create-purchase-order.dto';
+import { UpdatePurchaseOrderDto } from './dto/update-purchase-order.dto';
+import { BulkUpdatePurchaseOrdersDto } from './dto/bulk-update-purchase-orders.dto';
+import { BulkCreatePurchaseOrdersDto } from './dto/bulk-create-purchase-orders.dto';
 import { CombinePreviewDto } from './dto/combine-preview.dto';
 import { MergePOsDto } from './dto/merge-pos.dto';
 import { PurchaseOrder } from './schemas/purchase-order.schema';
@@ -57,6 +61,35 @@ export class PurchaseOrdersController {
     return this.purchaseOrdersService.create(createPurchaseOrderDto);
   }
 
+  @Post('bulk-create')
+  @Roles(UserRole.ADMIN, UserRole.STAFF)
+  @ApiOperation({ summary: 'Bulk create purchase orders from multiple bank/BIP orders' })
+  @ApiResponse({
+    status: 201,
+    description: 'Bulk purchase orders creation completed with success and failure summary',
+    schema: {
+      example: {
+        successCount: 3,
+        failedCount: 1,
+        successfulCreations: [
+          { orderId: '507f1f77bcf86cd799439011', poNumber: 'PO-2024-0001', orderType: 'bank-order' },
+          { orderId: '507f1f77bcf86cd799439012', poNumber: 'PO-2024-0002', orderType: 'bank-order' },
+          { orderId: '507f1f77bcf86cd799439013', poNumber: 'PO-2024-0003', orderType: 'bip-order' },
+        ],
+        failedCreations: [
+          { orderId: '507f1f77bcf86cd799439014', orderType: 'bank-order', error: 'Bank order not found' },
+        ],
+      },
+    },
+  })
+  @ApiResponse({ status: 400, description: 'Bad request - validation error or no order IDs provided' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 404, description: 'Vendor not found' })
+  async bulkCreate(@Body() bulkCreateDto: BulkCreatePurchaseOrdersDto) {
+    return this.purchaseOrdersService.bulkCreatePurchaseOrders(bulkCreateDto);
+  }
+
   @Get()
   @Roles(UserRole.ADMIN, UserRole.STAFF)
   @ApiOperation({ summary: 'Get all purchase orders with pagination' })
@@ -80,6 +113,13 @@ export class PurchaseOrdersController {
     type: String,
     description: 'Filter by vendor ID',
   })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    type: String,
+    description: 'Filter by status (draft, active, merged, cancelled)',
+    example: 'active',
+  })
   @ApiResponse({
     status: 200,
     description: 'Purchase orders retrieved successfully',
@@ -90,6 +130,7 @@ export class PurchaseOrdersController {
     @Query('page') page?: number,
     @Query('limit') limit?: number,
     @Query('vendorId') vendorId?: string,
+    @Query('status') status?: string,
   ): Promise<{
     data: PurchaseOrder[];
     total: number;
@@ -100,6 +141,7 @@ export class PurchaseOrdersController {
       page ? Number(page) : 1,
       limit ? Number(limit) : 10,
       vendorId,
+      status,
     );
   }
 
@@ -296,6 +338,77 @@ export class PurchaseOrdersController {
 
     // Send PDF
     res.status(HttpStatus.OK).send(pdfBuffer);
+  }
+
+  @Post('bulk-update')
+  @Roles(UserRole.ADMIN, UserRole.STAFF)
+  @ApiOperation({ summary: 'Bulk update multiple purchase orders with serial numbers (Admin/Staff only)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Bulk update completed with success and failure summary',
+    schema: {
+      example: {
+        successCount: 3,
+        failedCount: 1,
+        successfulUpdates: [
+          { poId: '507f1f77bcf86cd799439011', poNumber: 'PO-2024-0001' },
+          { poId: '507f1f77bcf86cd799439012', poNumber: 'PO-2024-0002' },
+          { poId: '507f1f77bcf86cd799439013', poNumber: 'PO-2024-0003' },
+        ],
+        failedUpdates: [
+          { poId: '507f1f77bcf86cd799439014', error: 'Purchase order not found' },
+        ],
+      },
+    },
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  async bulkUpdate(@Body() bulkUpdateDto: BulkUpdatePurchaseOrdersDto) {
+    return this.purchaseOrdersService.bulkUpdate(bulkUpdateDto);
+  }
+
+  @Patch(':id')
+  @Roles(UserRole.ADMIN, UserRole.STAFF)
+  @ApiOperation({ summary: 'Update purchase order with product serial numbers (Admin/Staff only)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Purchase order updated successfully',
+    type: PurchaseOrder,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request - Invalid ID, merged PO cannot be updated, or product not found',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 404, description: 'Purchase order not found' })
+  async update(
+    @Param('id') id: string,
+    @Body() updatePurchaseOrderDto: UpdatePurchaseOrderDto,
+  ): Promise<PurchaseOrder> {
+    return this.purchaseOrdersService.update(id, updatePurchaseOrderDto);
+  }
+
+  @Post(':id/cancel')
+  @Roles(UserRole.ADMIN, UserRole.STAFF)
+  @ApiOperation({ summary: 'Cancel a purchase order (Admin/Staff only)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Purchase order cancelled successfully',
+    type: PurchaseOrder,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request - PO already cancelled or merged PO cannot be cancelled',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 404, description: 'Purchase order not found' })
+  async cancel(
+    @Param('id') id: string,
+    @Query('reason') reason?: string,
+  ): Promise<PurchaseOrder> {
+    return this.purchaseOrdersService.cancel(id, reason);
   }
 
   @Delete(':id')

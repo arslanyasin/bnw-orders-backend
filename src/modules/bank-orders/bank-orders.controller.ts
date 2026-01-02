@@ -117,6 +117,8 @@ export class BankOrdersController {
   @ApiQuery({ name: 'status', required: false, type: String, description: 'Filter by order status' })
   @ApiQuery({ name: 'city', required: false, type: String, description: 'Filter by city' })
   @ApiQuery({ name: 'bankId', required: false, type: String, description: 'Filter by bank ID' })
+  @ApiQuery({ name: 'startDate', required: false, type: String, description: 'Filter by start date (ISO format)', example: '2024-01-01' })
+  @ApiQuery({ name: 'endDate', required: false, type: String, description: 'Filter by end date (ISO format)', example: '2024-12-31' })
   @ApiResponse({ status: 200, description: 'List of bank orders with pagination' })
   findAll(
     @Query('page') page?: number,
@@ -125,6 +127,8 @@ export class BankOrdersController {
     @Query('status') status?: string,
     @Query('city') city?: string,
     @Query('bankId') bankId?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
   ) {
     return this.bankOrdersService.findAll(
       page ? Number(page) : 1,
@@ -133,6 +137,8 @@ export class BankOrdersController {
       status,
       city,
       bankId,
+      startDate ? new Date(startDate) : undefined,
+      endDate ? new Date(endDate) : undefined,
     );
   }
 

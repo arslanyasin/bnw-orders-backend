@@ -8,6 +8,7 @@ import { validationSchema } from './config/env.validation';
 // Shared modules
 import { DatabaseModule } from '@shared/database/database.module';
 import { LoggerModule } from '@shared/logger/logger.module';
+import { CommonModule } from '@common/common.module';
 
 // Feature modules
 import { AuthModule } from '@modules/auth/auth.module';
@@ -23,6 +24,7 @@ import { PurchaseOrdersModule } from '@modules/purchase-orders/purchase-orders.m
 import { DeliveriesModule } from '@modules/deliveries/deliveries.module';
 import { CouriersModule } from '@modules/couriers/couriers.module';
 import { ShipmentsModule } from '@modules/shipments/shipments.module';
+import { DeliveryChallansModule } from '@modules/delivery-challans/delivery-challans.module';
 
 // Guards
 import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
@@ -58,6 +60,7 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
     // Shared modules
     DatabaseModule,
     LoggerModule,
+    CommonModule,
 
     // Feature modules
     AuthModule,
@@ -73,6 +76,7 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
     DeliveriesModule,
     CouriersModule,
     ShipmentsModule,
+    DeliveryChallansModule,
     DashboardModule,
   ],
   providers: [

@@ -29,6 +29,9 @@ export class PurchaseOrderProduct {
 
   @ApiProperty({ example: 'PO-2024-0001', description: 'Source PO number (for merged POs)', required: false })
   sourcePO?: string;
+
+  @ApiProperty({ example: 'SN123456789', description: 'Product serial number', required: false })
+  serialNumber?: string;
 }
 
 @Schema({ timestamps: true })

@@ -7,14 +7,23 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { PurchaseOrder, PurchaseOrderProduct } from './schemas/purchase-order.schema';
 import { CreatePurchaseOrderDto } from './dto/create-purchase-order.dto';
+import { UpdatePurchaseOrderDto } from './dto/update-purchase-order.dto';
+import { BulkUpdatePurchaseOrdersDto } from './dto/bulk-update-purchase-orders.dto';
+import { BulkCreatePurchaseOrdersDto } from './dto/bulk-create-purchase-orders.dto';
 import { VendorsService } from '@modules/vendors/vendors.service';
 import { ProductsService } from '@modules/products/products.service';
+import { BankOrder } from '@modules/bank-orders/schemas/bank-order.schema';
+import { Bip } from '@modules/bip/schemas/bip.schema';
 
 @Injectable()
 export class PurchaseOrdersService {
   constructor(
     @InjectModel(PurchaseOrder.name)
     private purchaseOrderModel: Model<PurchaseOrder>,
+    @InjectModel(BankOrder.name)
+    private bankOrderModel: Model<BankOrder>,
+    @InjectModel(Bip.name)
+    private bipModel: Model<Bip>,
     private vendorsService: VendorsService,
     private productsService: ProductsService,
   ) {}
@@ -117,6 +126,7 @@ export class PurchaseOrdersService {
     page: number = 1,
     limit: number = 10,
     vendorId?: string,
+    status?: string,
   ): Promise<{
     data: PurchaseOrder[];
     total: number;
@@ -132,6 +142,11 @@ export class PurchaseOrdersService {
         throw new BadRequestException('Invalid vendor ID format');
       }
       query.vendorId = new Types.ObjectId(vendorId);
+    }
+
+    // Filter by status if provided
+    if (status) {
+      query.status = status;
     }
 
     const [data, total] = await Promise.all([
@@ -188,6 +203,160 @@ export class PurchaseOrdersService {
       .exec();
   }
 
+  async update(
+    id: string,
+    updatePurchaseOrderDto: UpdatePurchaseOrderDto,
+  ): Promise<PurchaseOrder> {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Invalid purchase order ID format');
+    }
+
+    const purchaseOrder = await this.purchaseOrderModel.findOne({
+      _id: id,
+      isDeleted: false,
+    });
+
+    if (!purchaseOrder) {
+      throw new NotFoundException(`Purchase order with ID ${id} not found`);
+    }
+
+    // Check if PO has mergedFrom data - merged POs cannot be edited
+    if (purchaseOrder.mergedFrom && purchaseOrder.mergedFrom.length > 0) {
+      throw new BadRequestException(
+        'Cannot update merged purchase orders. Only original POs can be edited.',
+      );
+    }
+
+    // Check if PO is cancelled - cancelled POs cannot be edited
+    if (purchaseOrder.status === 'cancelled') {
+      throw new BadRequestException(
+        'Cannot update cancelled purchase orders.',
+      );
+    }
+
+    // Update serial numbers for products
+    for (const productUpdate of updatePurchaseOrderDto.products) {
+      const productIndex = purchaseOrder.products.findIndex(
+        (p) => p.productId.toString() === productUpdate.productId,
+      );
+
+      if (productIndex === -1) {
+        throw new NotFoundException(
+          `Product with ID ${productUpdate.productId} not found in this PO`,
+        );
+      }
+
+      // Update serial number
+      purchaseOrder.products[productIndex].serialNumber =
+        productUpdate.serialNumber;
+    }
+
+    // Mark products array as modified so Mongoose saves the changes
+    purchaseOrder.markModified('products');
+    await purchaseOrder.save();
+
+    return this.findOne(id);
+  }
+
+  async bulkUpdate(
+    bulkUpdateDto: BulkUpdatePurchaseOrdersDto,
+  ): Promise<{
+    successCount: number;
+    failedCount: number;
+    successfulUpdates: Array<{ poId: string; poNumber: string }>;
+    failedUpdates: Array<{ poId: string; error: string }>;
+  }> {
+    const result = {
+      successCount: 0,
+      failedCount: 0,
+      successfulUpdates: [] as Array<{ poId: string; poNumber: string }>,
+      failedUpdates: [] as Array<{ poId: string; error: string }>,
+    };
+
+    for (const poUpdate of bulkUpdateDto.updates) {
+      try {
+        // Validate PO ID
+        if (!Types.ObjectId.isValid(poUpdate.poId)) {
+          result.failedCount++;
+          result.failedUpdates.push({
+            poId: poUpdate.poId,
+            error: 'Invalid purchase order ID format',
+          });
+          continue;
+        }
+
+        // Fetch PO
+        const purchaseOrder = await this.purchaseOrderModel.findOne({
+          _id: poUpdate.poId,
+          isDeleted: false,
+        });
+
+        if (!purchaseOrder) {
+          result.failedCount++;
+          result.failedUpdates.push({
+            poId: poUpdate.poId,
+            error: 'Purchase order not found',
+          });
+          continue;
+        }
+
+        // Check if PO has mergedFrom data
+        if (purchaseOrder.mergedFrom && purchaseOrder.mergedFrom.length > 0) {
+          result.failedCount++;
+          result.failedUpdates.push({
+            poId: poUpdate.poId,
+            error: 'Cannot update merged purchase orders',
+          });
+          continue;
+        }
+
+        // Check if PO is cancelled
+        if (purchaseOrder.status === 'cancelled') {
+          result.failedCount++;
+          result.failedUpdates.push({
+            poId: poUpdate.poId,
+            error: 'Cannot update cancelled purchase orders',
+          });
+          continue;
+        }
+
+        // Update serial numbers for products
+        for (const productUpdate of poUpdate.products) {
+          const productIndex = purchaseOrder.products.findIndex(
+            (p) => p.productId.toString() === productUpdate.productId,
+          );
+
+          if (productIndex === -1) {
+            throw new Error(
+              `Product with ID ${productUpdate.productId} not found in this PO`,
+            );
+          }
+
+          purchaseOrder.products[productIndex].serialNumber =
+            productUpdate.serialNumber;
+        }
+
+        // Mark products array as modified so Mongoose saves the changes
+        purchaseOrder.markModified('products');
+        await purchaseOrder.save();
+
+        result.successCount++;
+        result.successfulUpdates.push({
+          poId: poUpdate.poId,
+          poNumber: purchaseOrder.poNumber,
+        });
+      } catch (error) {
+        result.failedCount++;
+        result.failedUpdates.push({
+          poId: poUpdate.poId,
+          error: error.message || 'Unknown error occurred',
+        });
+      }
+    }
+
+    return result;
+  }
+
   async remove(id: string): Promise<{ message: string }> {
     if (!Types.ObjectId.isValid(id)) {
       throw new BadRequestException('Invalid purchase order ID format');
@@ -206,6 +375,41 @@ export class PurchaseOrdersService {
     await this.purchaseOrderModel.findByIdAndUpdate(id, { isDeleted: true });
 
     return { message: 'Purchase order deleted successfully' };
+  }
+
+  async cancel(id: string, reason?: string): Promise<PurchaseOrder> {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Invalid purchase order ID format');
+    }
+
+    const purchaseOrder = await this.purchaseOrderModel.findOne({
+      _id: id,
+      isDeleted: false,
+    });
+
+    if (!purchaseOrder) {
+      throw new NotFoundException(`Purchase order with ID ${id} not found`);
+    }
+
+    // Check if PO is already cancelled
+    if (purchaseOrder.status === 'cancelled') {
+      throw new BadRequestException(
+        'Purchase order is already cancelled',
+      );
+    }
+
+    // Check if PO is merged - merged POs cannot be cancelled
+    if (purchaseOrder.status === 'merged') {
+      throw new BadRequestException(
+        'Cannot cancel merged purchase orders',
+      );
+    }
+
+    // Update status to cancelled
+    purchaseOrder.status = 'cancelled';
+    await purchaseOrder.save();
+
+    return this.findOne(id);
   }
 
   /**
@@ -407,5 +611,222 @@ export class PurchaseOrdersService {
 
     // Return the merged PO with populated vendor
     return this.findOne(mergedPO._id.toString());
+  }
+
+  /**
+   * Bulk create purchase orders from multiple bank/BIP orders
+   */
+  async bulkCreatePurchaseOrders(
+    bulkCreateDto: BulkCreatePurchaseOrdersDto,
+  ): Promise<{
+    successCount: number;
+    failedCount: number;
+    successfulCreations: Array<{ orderId: string; poNumber: string; orderType: string }>;
+    failedCreations: Array<{ orderId: string; orderType: string; error: string }>;
+  }> {
+    // Validate that at least one array of order IDs is provided
+    if (
+      (!bulkCreateDto.bankOrderIds || bulkCreateDto.bankOrderIds.length === 0) &&
+      (!bulkCreateDto.bipOrderIds || bulkCreateDto.bipOrderIds.length === 0)
+    ) {
+      throw new BadRequestException(
+        'At least one of bankOrderIds or bipOrderIds must be provided',
+      );
+    }
+
+    // Verify vendor exists
+    const vendor = await this.vendorsService.findOne(bulkCreateDto.vendorId);
+    if (!vendor) {
+      throw new NotFoundException(
+        `Vendor with ID ${bulkCreateDto.vendorId} not found`,
+      );
+    }
+
+    const result = {
+      successCount: 0,
+      failedCount: 0,
+      successfulCreations: [] as Array<{ orderId: string; poNumber: string; orderType: string }>,
+      failedCreations: [] as Array<{ orderId: string; orderType: string; error: string }>,
+    };
+
+    // Process bank orders
+    if (bulkCreateDto.bankOrderIds && bulkCreateDto.bankOrderIds.length > 0) {
+      for (const orderId of bulkCreateDto.bankOrderIds) {
+        try {
+          // Validate order ID
+          if (!Types.ObjectId.isValid(orderId)) {
+            result.failedCount++;
+            result.failedCreations.push({
+              orderId,
+              orderType: 'bank-order',
+              error: 'Invalid order ID format',
+            });
+            continue;
+          }
+
+          // Fetch bank order
+          const bankOrder = await this.bankOrderModel
+            .findOne({ _id: orderId, isDeleted: false })
+            .populate('productId')
+            .exec();
+
+          if (!bankOrder) {
+            result.failedCount++;
+            result.failedCreations.push({
+              orderId,
+              orderType: 'bank-order',
+              error: 'Bank order not found',
+            });
+            continue;
+          }
+
+          // Check if product exists
+          if (!bankOrder.productId) {
+            result.failedCount++;
+            result.failedCreations.push({
+              orderId,
+              orderType: 'bank-order',
+              error: 'Bank order does not have a product assigned',
+            });
+            continue;
+          }
+
+          // Get product details
+          const product = bankOrder.productId as any;
+          const totalPrice = bankOrder.qty * bulkCreateDto.unitPrice;
+
+          // Build product details
+          const productDetails: PurchaseOrderProduct = {
+            productId: new Types.ObjectId(product._id),
+            productName: product.name || bankOrder.product,
+            bankProductNumber: product.bankProductNumber || 'N/A',
+            quantity: bankOrder.qty,
+            unitPrice: bulkCreateDto.unitPrice,
+            totalPrice,
+            bankOrderId: new Types.ObjectId(orderId),
+          };
+
+          // Generate PO number
+          const poNumber = await this.generatePONumber();
+
+          // Create purchase order
+          const purchaseOrder = new this.purchaseOrderModel({
+            poNumber,
+            vendorId: new Types.ObjectId(bulkCreateDto.vendorId),
+            bankOrderId: new Types.ObjectId(orderId),
+            products: [productDetails],
+            totalAmount: totalPrice,
+            status: 'active',
+          });
+
+          await purchaseOrder.save();
+
+          result.successCount++;
+          result.successfulCreations.push({
+            orderId,
+            poNumber,
+            orderType: 'bank-order',
+          });
+        } catch (error) {
+          result.failedCount++;
+          result.failedCreations.push({
+            orderId,
+            orderType: 'bank-order',
+            error: error.message || 'Unknown error occurred',
+          });
+        }
+      }
+    }
+
+    // Process BIP orders
+    if (bulkCreateDto.bipOrderIds && bulkCreateDto.bipOrderIds.length > 0) {
+      for (const orderId of bulkCreateDto.bipOrderIds) {
+        try {
+          // Validate order ID
+          if (!Types.ObjectId.isValid(orderId)) {
+            result.failedCount++;
+            result.failedCreations.push({
+              orderId,
+              orderType: 'bip-order',
+              error: 'Invalid order ID format',
+            });
+            continue;
+          }
+
+          // Fetch BIP order
+          const bipOrder = await this.bipModel
+            .findOne({ _id: orderId, isDeleted: false })
+            .populate('productId')
+            .exec();
+
+          if (!bipOrder) {
+            result.failedCount++;
+            result.failedCreations.push({
+              orderId,
+              orderType: 'bip-order',
+              error: 'BIP order not found',
+            });
+            continue;
+          }
+
+          // Check if product exists
+          if (!bipOrder.productId) {
+            result.failedCount++;
+            result.failedCreations.push({
+              orderId,
+              orderType: 'bip-order',
+              error: 'BIP order does not have a product assigned',
+            });
+            continue;
+          }
+
+          // Get product details
+          const product = bipOrder.productId as any;
+          const totalPrice = bipOrder.qty * bulkCreateDto.unitPrice;
+
+          // Build product details
+          const productDetails: PurchaseOrderProduct = {
+            productId: new Types.ObjectId(product._id),
+            productName: product.name || bipOrder.product,
+            bankProductNumber: product.bankProductNumber || 'N/A',
+            quantity: bipOrder.qty,
+            unitPrice: bulkCreateDto.unitPrice,
+            totalPrice,
+            bipOrderId: new Types.ObjectId(orderId),
+          };
+
+          // Generate PO number
+          const poNumber = await this.generatePONumber();
+
+          // Create purchase order
+          const purchaseOrder = new this.purchaseOrderModel({
+            poNumber,
+            vendorId: new Types.ObjectId(bulkCreateDto.vendorId),
+            bipOrderId: new Types.ObjectId(orderId),
+            products: [productDetails],
+            totalAmount: totalPrice,
+            status: 'active',
+          });
+
+          await purchaseOrder.save();
+
+          result.successCount++;
+          result.successfulCreations.push({
+            orderId,
+            poNumber,
+            orderType: 'bip-order',
+          });
+        } catch (error) {
+          result.failedCount++;
+          result.failedCreations.push({
+            orderId,
+            orderType: 'bip-order',
+            error: error.message || 'Unknown error occurred',
+          });
+        }
+      }
+    }
+
+    return result;
   }
 }

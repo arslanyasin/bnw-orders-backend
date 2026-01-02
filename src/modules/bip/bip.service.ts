@@ -291,6 +291,8 @@ export class BipService {
     status?: string,
     city?: string,
     bankId?: string,
+    startDate?: Date,
+    endDate?: Date,
   ): Promise<{
     data: Bip[];
     total: number;
@@ -332,6 +334,19 @@ export class BipService {
       query.bankId = new Types.ObjectId(bankId);
     }
 
+    // Add date range filter
+    if (startDate || endDate) {
+      query.orderDate = {};
+      if (startDate) {
+        query.orderDate.$gte = new Date(startDate);
+      }
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999); // Include entire end date
+        query.orderDate.$lte = end;
+      }
+    }
+
     const [data, total] = await Promise.all([
       this.bipModel
         .find(query)
@@ -344,6 +359,10 @@ export class BipService {
             path: 'courierId',
             select: 'courierName courierType',
           },
+        })
+        .populate({
+          path: 'deliveryChallan',
+          select: 'challanNumber challanDate pdfURLPath trackingNumber customerName printStatus printedAt printCount',
         })
         .sort({ createdAt: -1 })
         .skip(skip)
@@ -373,6 +392,10 @@ export class BipService {
           path: 'courierId',
           select: 'courierName courierType contactPhone contactEmail',
         },
+      })
+      .populate({
+        path: 'deliveryChallan',
+        select: 'challanNumber challanDate pdfURLPath trackingNumber consignmentNumber courierName productName productBrand productSerialNumber quantity customerName customerCnic customerPhone customerAddress customerCity dispatchDate expectedDeliveryDate remarks printStatus printedAt printCount',
       })
       .exec();
   }

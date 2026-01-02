@@ -3,6 +3,8 @@ import {
   NotFoundException,
   BadRequestException,
   InternalServerErrorException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
@@ -17,6 +19,7 @@ import { TcsService } from './integrations/tcs.service';
 import { BankOrder } from '@modules/bank-orders/schemas/bank-order.schema';
 import { Bip } from '@modules/bip/schemas/bip.schema';
 import { OrderStatus } from '@common/enums/order-status.enum';
+import { DeliveryChallansService } from '@modules/delivery-challans/delivery-challans.service';
 
 @Injectable()
 export class ShipmentsService {
@@ -27,6 +30,8 @@ export class ShipmentsService {
     private couriersService: CouriersService,
     private leopardsService: LeopardsService,
     private tcsService: TcsService,
+    @Inject(forwardRef(() => DeliveryChallansService))
+    private deliveryChallansService: DeliveryChallansService,
   ) {}
 
   async dispatchBankOrder(
@@ -147,6 +152,14 @@ export class ShipmentsService {
     bankOrder.shipmentId = shipment._id;
     await bankOrder.save();
 
+    // Auto-generate delivery challan with PDF
+    try {
+      await this.deliveryChallansService.autoCreateAfterDispatch(shipment._id);
+    } catch (error) {
+      // Log error but don't fail the dispatch
+      console.error('Failed to auto-generate delivery challan:', error);
+    }
+
     return shipment;
   }
 
@@ -266,6 +279,14 @@ export class ShipmentsService {
     bipOrder.shipmentId = shipment._id;
     await bipOrder.save();
 
+    // Auto-generate delivery challan with PDF
+    try {
+      await this.deliveryChallansService.autoCreateAfterDispatch(shipment._id);
+    } catch (error) {
+      // Log error but don't fail the dispatch
+      console.error('Failed to auto-generate delivery challan:', error);
+    }
+
     return shipment;
   }
 
@@ -345,6 +366,14 @@ export class ShipmentsService {
     bankOrder.shipmentId = shipment._id;
     await bankOrder.save();
 
+    // Auto-generate delivery challan with PDF
+    try {
+      await this.deliveryChallansService.autoCreateAfterDispatch(shipment._id);
+    } catch (error) {
+      // Log error but don't fail the dispatch
+      console.error('Failed to auto-generate delivery challan:', error);
+    }
+
     return shipment;
   }
 
@@ -421,6 +450,14 @@ export class ShipmentsService {
     bipOrder.status = OrderStatus.DISPATCH;
     bipOrder.shipmentId = shipment._id;
     await bipOrder.save();
+
+    // Auto-generate delivery challan with PDF
+    try {
+      await this.deliveryChallansService.autoCreateAfterDispatch(shipment._id);
+    } catch (error) {
+      // Log error but don't fail the dispatch
+      console.error('Failed to auto-generate delivery challan:', error);
+    }
 
     return shipment;
   }

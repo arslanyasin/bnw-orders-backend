@@ -128,6 +128,18 @@ export class Bip extends Document {
 
 export const BipSchema = SchemaFactory.createForClass(Bip);
 
+// Virtual populate for delivery challan
+BipSchema.virtual('deliveryChallan', {
+  ref: 'DeliveryChallan',
+  localField: '_id',
+  foreignField: 'bipOrderId',
+  justOne: true,
+});
+
+// Ensure virtuals are included in JSON and Object transformations
+BipSchema.set('toJSON', { virtuals: true });
+BipSchema.set('toObject', { virtuals: true });
+
 // Indexes
 BipSchema.index({ cnic: 1, giftCode: 1 });
 BipSchema.index({ orderDate: -1 });
