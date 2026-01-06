@@ -52,7 +52,7 @@ export interface TcsTrackingResponse {
 export class TcsService {
   private readonly logger = new Logger(TcsService.name);
   private axiosInstance: AxiosInstance;
-  private readonly TCS_BASE_URL = 'https://devconnect.tcscourier.com/ecom/api';
+  private readonly TCS_BASE_URL = 'https://ociconnect.tcscourier.com/ecom/api';
   private tokenCache: { token: string; expiry: Date } | null = null;
 
   constructor(private configService: ConfigService) {
