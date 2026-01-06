@@ -232,7 +232,7 @@ pipeline {
         stage('Deployment') {
             when {
                 anyOf {
-                    branch 'develop'
+                    branch 'master'
                 }
             }
             steps {
