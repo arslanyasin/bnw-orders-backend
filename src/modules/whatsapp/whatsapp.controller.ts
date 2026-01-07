@@ -17,6 +17,7 @@ import { RolesGuard } from '@common/guards/roles.guard';
 import { Roles } from '@common/decorators/roles.decorator';
 import { UserRole } from '@common/interfaces/user-role.enum';
 import { WhatsAppService } from '@common/services/whatsapp.service';
+import { SendWhatsAppTheWhatBotDto } from '@common/dto/send-whatsapp-thewhatbot.dto';
 import { SendWhatsAppMessageDto } from '@common/dto/send-whatsapp-message.dto';
 
 @ApiTags('WhatsApp')
@@ -29,7 +30,7 @@ export class WhatsAppController {
   @Post('send-message')
   @Roles(UserRole.ADMIN, UserRole.STAFF)
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Send WhatsApp message to customer via TheWhatBot API' })
+  @ApiOperation({ summary: 'Send WhatsApp message to customer via TheWhatBot API (Direct format)' })
   @ApiResponse({
     status: 200,
     description: 'WhatsApp message sent successfully',
@@ -51,7 +52,19 @@ export class WhatsAppController {
     status: 500,
     description: 'Failed to send WhatsApp message - API configuration error or external API failure',
   })
-  async sendWhatsAppMessage(@Body() sendWhatsAppDto: SendWhatsAppMessageDto) {
+  async sendWhatsAppMessage(@Body() sendWhatsAppDto: SendWhatsAppTheWhatBotDto) {
+    return this.whatsAppService.sendWhatsAppDirectFormat(sendWhatsAppDto);
+  }
+
+  @Post('send-message-simple')
+  @Roles(UserRole.ADMIN, UserRole.STAFF)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Send WhatsApp message to customer via TheWhatBot API (Simplified format - auto-transforms)' })
+  @ApiResponse({
+    status: 200,
+    description: 'WhatsApp message sent successfully',
+  })
+  async sendWhatsAppMessageSimple(@Body() sendWhatsAppDto: SendWhatsAppMessageDto) {
     return this.whatsAppService.sendWhatsAppViaTheWhatBot(sendWhatsAppDto);
   }
 }

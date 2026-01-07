@@ -121,6 +121,7 @@ BNW Collections
 
   /**
    * Send WhatsApp message via TheWhatBot API
+   * Accepts data in SendWhatsAppMessageDto format and transforms to TheWhatBot format
    */
   async sendWhatsAppViaTheWhatBot(data: SendWhatsAppMessageDto): Promise<TheWhatBotResponse> {
     try {
@@ -178,6 +179,62 @@ BNW Collections
       const response = await axios.post<TheWhatBotResponse>(
         this.theWhatBotApiUrl,
         requestBody,
+        {
+          headers: {
+            'X-ACCESS-TOKEN': this.theWhatBotAccessToken,
+            'Content-Type': 'application/json',
+          },
+          timeout: 30000, // 30 seconds timeout
+        },
+      );
+
+      this.logger.log(`WhatsApp message sent successfully to ${data.phone}`);
+
+      return {
+        success: true,
+        message: 'WhatsApp message sent successfully',
+        data: response.data,
+      };
+    } catch (error) {
+      this.logger.error(`Failed to send WhatsApp message via TheWhatBot: ${error.message}`);
+
+      if (axios.isAxiosError(error)) {
+        const statusCode = error.response?.status;
+        const errorMessage = error.response?.data?.message || error.message;
+
+        this.logger.error(`TheWhatBot API Error - Status: ${statusCode}, Message: ${errorMessage}`);
+
+        return {
+          success: false,
+          message: `Failed to send WhatsApp message: ${errorMessage}`,
+          data: error.response?.data,
+        };
+      }
+
+      return {
+        success: false,
+        message: `Failed to send WhatsApp message: ${error.message}`,
+      };
+    }
+  }
+
+  /**
+   * Send WhatsApp message via TheWhatBot API (Direct format)
+   * Accepts data directly in TheWhatBot format from frontend
+   */
+  async sendWhatsAppDirectFormat(data: TheWhatBotContactDto): Promise<TheWhatBotResponse> {
+    try {
+      this.logger.log(`Sending WhatsApp message via TheWhatBot to ${data.phone}`);
+
+      // Validate configuration
+      if (!this.theWhatBotAccessToken) {
+        throw new InternalServerErrorException('WhatsApp access token not configured');
+      }
+
+      // Make API call to TheWhatBot
+      const response = await axios.post<TheWhatBotResponse>(
+        this.theWhatBotApiUrl,
+        data,
         {
           headers: {
             'X-ACCESS-TOKEN': this.theWhatBotAccessToken,
