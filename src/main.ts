@@ -11,6 +11,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     bufferLogs: true,
   });
+  app.set('trust proxy', 1); // 🔥 REQUIRED when using Nginx
 
   // Get services
   const configService = app.get(ConfigService);
