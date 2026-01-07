@@ -67,7 +67,7 @@ async function bootstrap() {
       },
       'JWT-auth',
     )
-    .addServer(`http://localhost:${configService.get<number>('app.port') || 3000}`, 'Development')
+    //.addServer(`http://localhost:${configService.get<number>('app.port') || 3000}`, 'Development')
     .addServer('https://b2b.bnwcollections.com', 'Production')
     .build();
 
