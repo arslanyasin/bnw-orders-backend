@@ -330,9 +330,19 @@ export class ShipmentsService {
       );
     }
 
-    // Get TCS Overland courier
+    // Validate courier type for manual dispatch
+    if (
+      manualDispatchDto.courierType !== CourierType.TCS_OVERLAND &&
+      manualDispatchDto.courierType !== CourierType.SELF_DELIVERY
+    ) {
+      throw new BadRequestException(
+        `Manual dispatch only supports TCS Overland and Self Delivery courier types`,
+      );
+    }
+
+    // Get courier
     const courier = await this.couriersService.findByType(
-      CourierType.TCS_OVERLAND,
+      manualDispatchDto.courierType,
     );
 
     // Prepare shipment data
@@ -415,9 +425,19 @@ export class ShipmentsService {
       );
     }
 
-    // Get TCS Overland courier
+    // Validate courier type for manual dispatch
+    if (
+      manualDispatchDto.courierType !== CourierType.TCS_OVERLAND &&
+      manualDispatchDto.courierType !== CourierType.SELF_DELIVERY
+    ) {
+      throw new BadRequestException(
+        `Manual dispatch only supports TCS Overland and Self Delivery courier types`,
+      );
+    }
+
+    // Get courier
     const courier = await this.couriersService.findByType(
-      CourierType.TCS_OVERLAND,
+      manualDispatchDto.courierType,
     );
 
     // Prepare shipment data

@@ -4,10 +4,22 @@ import {
   IsOptional,
   IsNumber,
   Min,
+  IsEnum,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { CourierType } from '@common/enums/courier-type.enum';
 
 export class ManualDispatchDto {
+  @ApiProperty({
+    example: CourierType.TCS_OVERLAND,
+    description: 'Courier type for manual dispatch (TCS Overland or Self Delivery)',
+    enum: CourierType,
+    enumName: 'CourierType',
+  })
+  @IsEnum(CourierType)
+  @IsNotEmpty()
+  courierType: CourierType;
+
   @ApiProperty({
     example: 'TRK123456789',
     description: 'Tracking number from courier',

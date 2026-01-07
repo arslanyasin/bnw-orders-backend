@@ -13,6 +13,7 @@
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
     "seed:admin": "ts-node -r tsconfig-paths/register src/database/seeds/create-admin.seed.ts",
+    "seed:self-delivery": "ts-node -r tsconfig-paths/register src/database/seeds/create-self-delivery-courier.seed.ts",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
     "test:watch": "jest --watch",

@@ -67,11 +67,11 @@ export class ShipmentsController {
 
   @Post('dispatch/bank-order/:id/manual')
   @Roles(UserRole.ADMIN, UserRole.STAFF, UserRole.DISPATCH)
-  @ApiOperation({ summary: 'Manually dispatch a bank order with TCS Overland (no API call)' })
+  @ApiOperation({ summary: 'Manually dispatch a bank order with TCS Overland or Self Delivery (no API call)' })
   @ApiParam({ name: 'id', description: 'Bank Order MongoDB ObjectId' })
   @ApiResponse({ status: 201, description: 'Order dispatched manually with provided tracking details' })
-  @ApiResponse({ status: 400, description: 'Invalid order ID or order already dispatched' })
-  @ApiResponse({ status: 404, description: 'Bank order not found or TCS Overland courier not configured' })
+  @ApiResponse({ status: 400, description: 'Invalid order ID, order already dispatched, or unsupported courier type' })
+  @ApiResponse({ status: 404, description: 'Bank order not found or selected courier not configured' })
   dispatchBankOrderManually(
     @Param('id', ParseObjectIdPipe) id: string,
     @Body() manualDispatchDto: ManualDispatchDto,
@@ -81,11 +81,11 @@ export class ShipmentsController {
 
   @Post('dispatch/bip-order/:id/manual')
   @Roles(UserRole.ADMIN, UserRole.STAFF, UserRole.DISPATCH)
-  @ApiOperation({ summary: 'Manually dispatch a BIP order with TCS Overland (no API call)' })
+  @ApiOperation({ summary: 'Manually dispatch a BIP order with TCS Overland or Self Delivery (no API call)' })
   @ApiParam({ name: 'id', description: 'BIP Order MongoDB ObjectId' })
   @ApiResponse({ status: 201, description: 'Order dispatched manually with provided tracking details' })
-  @ApiResponse({ status: 400, description: 'Invalid order ID or order already dispatched' })
-  @ApiResponse({ status: 404, description: 'BIP order not found or TCS Overland courier not configured' })
+  @ApiResponse({ status: 400, description: 'Invalid order ID, order already dispatched, or unsupported courier type' })
+  @ApiResponse({ status: 404, description: 'BIP order not found or selected courier not configured' })
   dispatchBipOrderManually(
     @Param('id', ParseObjectIdPipe) id: string,
     @Body() manualDispatchDto: ManualDispatchDto,
