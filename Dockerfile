@@ -18,7 +18,8 @@ RUN apk add --no-cache \
 # Create necessary directories including temp directory for PDF processing
 RUN mkdir -p /app/logs /app/tmp && \
     chown -R nestjs:nodejs /app && \
-    chmod 755 /app/tmp
+    chmod 755 /app/tmp && \
+    chmod 755 /app/logs
 
 # Set temp directory environment variable to app-owned directory
 ENV TMPDIR=/app/tmp
