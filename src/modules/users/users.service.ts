@@ -33,12 +33,17 @@ export class UsersService {
       const user = new this.userModel(createUserDto);
       const savedUser = await user.save();
 
-      this.logger.audit(
-        'USER_CREATED',
-        savedUser._id.toString(),
-        { email: savedUser.email, role: savedUser.role },
-        'UsersService',
-      );
+      try {
+        this.logger.audit(
+          'USER_CREATED',
+          savedUser._id.toString(),
+          { email: savedUser.email, role: savedUser.role },
+          'UsersService',
+        );
+      } catch (auditError) {
+        // Log audit error but don't fail the user creation
+        this.logger.error('Audit logging failed', auditError.stack, 'UsersService');
+      }
 
       return savedUser;
     } catch (error) {
@@ -84,12 +89,16 @@ export class UsersService {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
 
-    this.logger.audit(
-      'USER_UPDATED',
-      id,
-      { updates: Object.keys(updateUserDto) },
-      'UsersService',
-    );
+    try {
+      this.logger.audit(
+        'USER_UPDATED',
+        id,
+        { updates: Object.keys(updateUserDto) },
+        'UsersService',
+      );
+    } catch (auditError) {
+      this.logger.error('Audit logging failed', auditError.stack, 'UsersService');
+    }
 
     return user;
   }
@@ -107,7 +116,11 @@ export class UsersService {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
 
-    this.logger.audit('USER_DELETED', id, {}, 'UsersService');
+    try {
+      this.logger.audit('USER_DELETED', id, {}, 'UsersService');
+    } catch (auditError) {
+      this.logger.error('Audit logging failed', auditError.stack, 'UsersService');
+    }
   }
 
   async updateRefreshToken(userId: string, refreshToken: string | null): Promise<void> {

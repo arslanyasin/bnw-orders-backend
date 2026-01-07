@@ -151,7 +151,11 @@ export class AuthService {
 
   async logout(userId: string) {
     await this.usersService.updateRefreshToken(userId, null);
-    this.logger.audit('USER_LOGOUT', userId, {}, 'AuthService');
+    try {
+      this.logger.audit('USER_LOGOUT', userId, {}, 'AuthService');
+    } catch (auditError) {
+      this.logger.error('Audit logging failed', auditError.stack, 'AuthService');
+    }
     return { message: 'Logged out successfully' };
   }
 
@@ -180,12 +184,16 @@ export class AuthService {
       new Date(Date.now() + 60 * 60 * 1000),
     );
 
-    this.logger.audit(
-      'PASSWORD_RESET_REQUESTED',
-      user._id.toString(),
-      { email: user.email },
-      'AuthService',
-    );
+    try {
+      this.logger.audit(
+        'PASSWORD_RESET_REQUESTED',
+        user._id.toString(),
+        { email: user.email },
+        'AuthService',
+      );
+    } catch (auditError) {
+      this.logger.error('Audit logging failed', auditError.stack, 'AuthService');
+    }
 
     // TODO: Send email with reset link
     // const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
@@ -222,12 +230,16 @@ export class AuthService {
     // Clear reset token
     await this.usersService.clearPasswordResetToken(user._id.toString());
 
-    this.logger.audit(
-      'PASSWORD_RESET_COMPLETED',
-      user._id.toString(),
-      { email: user.email },
-      'AuthService',
-    );
+    try {
+      this.logger.audit(
+        'PASSWORD_RESET_COMPLETED',
+        user._id.toString(),
+        { email: user.email },
+        'AuthService',
+      );
+    } catch (auditError) {
+      this.logger.error('Audit logging failed', auditError.stack, 'AuthService');
+    }
 
     return { message: 'Password has been reset successfully' };
   }
@@ -251,12 +263,16 @@ export class AuthService {
     // Update to new password
     await this.usersService.updatePassword(userId, changePasswordDto.newPassword);
 
-    this.logger.audit(
-      'PASSWORD_CHANGED',
-      userId,
-      { email: user.email },
-      'AuthService',
-    );
+    try {
+      this.logger.audit(
+        'PASSWORD_CHANGED',
+        userId,
+        { email: user.email },
+        'AuthService',
+      );
+    } catch (auditError) {
+      this.logger.error('Audit logging failed', auditError.stack, 'AuthService');
+    }
 
     return { message: 'Password changed successfully' };
   }

@@ -35,12 +35,16 @@ export class OrdersService {
 
     const savedOrder = await order.save();
 
-    this.logger.audit(
-      'ORDER_CREATED',
-      userId,
-      { orderId: savedOrder._id, orderNumber },
-      'OrdersService',
-    );
+    try {
+      this.logger.audit(
+        'ORDER_CREATED',
+        userId,
+        { orderId: savedOrder._id, orderNumber },
+        'OrdersService',
+      );
+    } catch (auditError) {
+      this.logger.error('Audit logging failed', auditError.stack, 'OrdersService');
+    }
 
     return savedOrder;
   }
@@ -103,12 +107,16 @@ export class OrdersService {
       throw new NotFoundException(`Order with ID ${id} not found`);
     }
 
-    this.logger.audit(
-      'ORDER_UPDATED',
-      userId,
-      { orderId: id, updates: Object.keys(updateOrderDto) },
-      'OrdersService',
-    );
+    try {
+      this.logger.audit(
+        'ORDER_UPDATED',
+        userId,
+        { orderId: id, updates: Object.keys(updateOrderDto) },
+        'OrdersService',
+      );
+    } catch (auditError) {
+      this.logger.error('Audit logging failed', auditError.stack, 'OrdersService');
+    }
 
     return updatedOrder;
   }
@@ -123,7 +131,11 @@ export class OrdersService {
       })
       .exec();
 
-    this.logger.audit('ORDER_DELETED', userId, { orderId: id }, 'OrdersService');
+    try {
+      this.logger.audit('ORDER_DELETED', userId, { orderId: id }, 'OrdersService');
+    } catch (auditError) {
+      this.logger.error('Audit logging failed', auditError.stack, 'OrdersService');
+    }
   }
 
   async getOrdersByStatus(status: OrderStatus): Promise<Order[]> {
