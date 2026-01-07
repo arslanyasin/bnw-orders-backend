@@ -40,6 +40,7 @@ export class UsersService {
 
       return savedUser;
     } catch (error) {
+      console.log("error",error)
       this.logger.error(`Failed to create user: ${error.message}`, error.stack, 'UsersService');
       throw error;
     }
