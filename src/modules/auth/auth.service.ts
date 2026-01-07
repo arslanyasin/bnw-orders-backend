@@ -71,7 +71,7 @@ export class AuthService {
     // Save refresh token
     await this.usersService.updateRefreshToken(user._id, tokens.refreshToken);
 
-    this.logger.audit('USER_LOGIN', user._id, { email: user.email }, 'AuthService');
+    // this.logger.audit('USER_LOGIN', user._id, { email: user.email }, 'AuthService');
 
     return {
       user,
@@ -89,14 +89,17 @@ export class AuthService {
 
       const tokens = await this.generateTokens(user);
 
-      await this.usersService.updateRefreshToken(user._id.toString(), tokens.refreshToken);
-
-      this.logger.audit(
-        'USER_REGISTERED',
+      await this.usersService.updateRefreshToken(
         user._id.toString(),
-        { email: user.email },
-        'AuthService',
+        tokens.refreshToken,
       );
+
+      // this.logger.audit(
+      //   'USER_REGISTERED',
+      //   user._id.toString(),
+      //   { email: user.email },
+      //   'AuthService',
+      // );
 
       return {
         user,
