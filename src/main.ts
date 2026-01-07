@@ -11,8 +11,6 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     bufferLogs: true,
   });
-  const server = app.getHttpAdapter().getInstance();
-  server.set('trust proxy', 1);
 
   // Get services
   const configService = app.get(ConfigService);
