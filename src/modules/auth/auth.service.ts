@@ -103,6 +103,7 @@ export class AuthService {
         ...tokens,
       };
     } catch (error) {
+      console.log("error",error)
       if (error instanceof ConflictException) {
         throw error;
       }
