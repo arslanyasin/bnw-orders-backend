@@ -654,7 +654,7 @@ export class BankOrdersService {
   ): Promise<{ success: boolean; message: string; order?: any }> {
     const order = await this.bankOrderModel
       .findOne({
-        refNo: poNumber,
+        poNumber: poNumber,
         cnic: cnic,
         isDeleted: false,
       })
@@ -678,7 +678,7 @@ export class BankOrdersService {
       success: true,
       message: 'Order found',
       order: {
-        poNumber: order.refNo,
+        poNumber: order.poNumber,
         orderDate: order.createdAt,
         customerName: order.customerName,
         product: order.product,

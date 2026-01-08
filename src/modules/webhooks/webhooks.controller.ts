@@ -374,7 +374,7 @@ export class WebhooksController {
     description: 'Invalid request data - PO number and CNIC are required',
   })
   async checkOrderStatus(@Body() checkOrderStatusDto: CheckOrderStatusDto) {
-    // Try to find in bank orders first (using refNo)
+    // Try to find in bank orders first (using poNumber)
     const bankResult = await this.bankOrdersService.checkOrderStatusByPOAndCNIC(
       checkOrderStatusDto.poNumber,
       checkOrderStatusDto.cnic,
@@ -384,7 +384,7 @@ export class WebhooksController {
       return bankResult;
     }
 
-    // If not found in bank orders, try BIP orders (using eforms)
+    // If not found in bank orders, try BIP orders (using poNumber)
     const bipResult = await this.bipService.checkOrderStatusByPOAndCNIC(
       checkOrderStatusDto.poNumber,
       checkOrderStatusDto.cnic,
