@@ -110,7 +110,7 @@ export class ShipmentsService {
         quantity: bankOrder.qty,
         declaredValue: dispatchDto.declaredValue || bankOrder.redeemedPoints,
         specialInstructions: dispatchDto.specialInstructions,
-        referenceNumber: bankOrder.refNo,
+        referenceNumber: bankOrder.poNumber,
         weightInKg: dispatchDto.weightInKg,
         fragile: dispatchDto.fragile,
         landmark: dispatchDto.landmark,

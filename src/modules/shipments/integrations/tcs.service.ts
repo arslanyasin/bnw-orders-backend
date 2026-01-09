@@ -205,7 +205,7 @@ export class TcsService {
         consignmentno: '', // TCS will generate this
         shipperinfo: {
           tcsaccount: courier.apiSecret || '', // TCS account number from apiSecret
-          shippername: 'Bank Order Processing System',
+          shippername: 'BNW Collections',
           address1: 'Head Office',
           address2: '',
           address3: '',
