@@ -90,13 +90,13 @@ export function generateDeliveryChallanPDF(
       doc
         .fontSize(11)
         .font('Helvetica-Bold')
-        .text(`Address: `, 155, customerY + 18, { continued: true })
+        .text(`Address: `, 85, customerY + 18, { continued: true })
         .font('Helvetica')
         .text(`${data.customerAddress} ${data.customerCity}`.toUpperCase(), {
           width: 450,
         });
 
-      const phoneY = customerY + 38;
+      const phoneY = customerY + 58;
       doc
         .fontSize(11)
         .font('Helvetica-Bold')
