@@ -97,6 +97,22 @@ export class DeliveryChallan extends Document {
   @Prop({ trim: true })
   consignmentNumber?: string;
 
+  @ApiProperty({
+    example: 'PO-2024-001',
+    description: 'Purchase order number (for bank orders)',
+    required: false,
+  })
+  @Prop({ trim: true, index: true })
+  poNumber?: string;
+
+  @ApiProperty({
+    example: 'EFORM-2024-001',
+    description: 'E-Form number (for BIP orders)',
+    required: false,
+  })
+  @Prop({ trim: true, index: true })
+  eforms?: string;
+
   @ApiProperty({ example: 'TCS Express', description: 'Courier name' })
   @Prop({ required: true, trim: true })
   courierName: string;

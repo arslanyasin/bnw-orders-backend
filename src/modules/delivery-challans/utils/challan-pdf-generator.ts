@@ -78,8 +78,27 @@ export function generateDeliveryChallanPDF(
         .font('Helvetica')
         .text(formattedDate);
 
+      // Order Reference (PO Number / eForm)
+      const orderRefY = detailsY + 20;
+      doc
+        .fontSize(11)
+        .font('Helvetica-Bold')
+        .text(`Order Ref: `, 85, orderRefY, { continued: true })
+        .font('Helvetica')
+        .text(data.orderReference || 'N/A');
+
+      // Consignment Number
+      if (data.consignmentNumber) {
+        doc
+          .fontSize(11)
+          .font('Helvetica-Bold')
+          .text(`CN: `, 400, orderRefY, { continued: true })
+          .font('Helvetica')
+          .text(data.consignmentNumber);
+      }
+
       // Customer Information
-      const customerY = detailsY + 30;
+      const customerY = orderRefY + 30;
       doc
         .fontSize(11)
         .font('Helvetica-Bold')

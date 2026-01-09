@@ -201,6 +201,7 @@ export class DeliveryChallansService {
       quantity: 1, // Always 1 for delivery challans
       trackingNumber: shipment.trackingNumber,
       consignmentNumber: shipment.consignmentNumber,
+      poNumber: bankOrder.poNumber,
       courierName:
         typeof shipment.courierId === 'object'
           ? shipment.courierId.courierName
@@ -295,6 +296,8 @@ export class DeliveryChallansService {
       quantity: 1, // Always 1 for delivery challans
       trackingNumber: shipment.trackingNumber,
       consignmentNumber: shipment.consignmentNumber,
+      eforms: bipOrder.eforms,
+      poNumber: bipOrder.poNumber,
       courierName:
         typeof shipment.courierId === 'object'
           ? shipment.courierId.courierName
@@ -442,7 +445,7 @@ export class DeliveryChallansService {
         .exec();
       orderType = 'bank';
       if (orderData) {
-        orderReference = orderData.refNo || '';
+        orderReference = orderData.poNumber || orderData.refNo || '';
         if (orderData.productId && typeof orderData.productId === 'object') {
           itemCode = orderData.productId.bankProductNumber || '';
         }
@@ -454,7 +457,7 @@ export class DeliveryChallansService {
         .exec();
       orderType = 'bip';
       if (orderData) {
-        orderReference = orderData.eforms || '';
+        orderReference = orderData.eforms || orderData.poNumber || '';
         if (orderData.productId && typeof orderData.productId === 'object') {
           itemCode = orderData.productId.bankProductNumber || '';
         }
@@ -520,6 +523,8 @@ export class DeliveryChallansService {
       quantity: 1,
       trackingNumber: shipment.trackingNumber,
       consignmentNumber: shipment.consignmentNumber,
+      poNumber: orderData.poNumber,
+      eforms: orderType === 'bip' ? orderData.eforms : undefined,
       courierName:
         typeof shipment.courierId === 'object'
           ? shipment.courierId.courierName
@@ -670,14 +675,18 @@ export class DeliveryChallansService {
     await challan.populate('bankOrderId');
     await challan.populate('bipOrderId');
 
-    // Determine order reference
+    // Determine order reference (use poNumber or eforms from challan directly)
     let orderReference = 'N/A';
-    if (challan.bankOrderId) {
+    if (challan.poNumber) {
+      orderReference = challan.poNumber;
+    } else if (challan.eforms) {
+      orderReference = challan.eforms;
+    } else if (challan.bankOrderId) {
       const bankOrder = challan.bankOrderId as any;
-      orderReference = bankOrder?.refNo || 'N/A';
+      orderReference = bankOrder?.poNumber || bankOrder?.refNo || 'N/A';
     } else if (challan.bipOrderId) {
       const bipOrder = challan.bipOrderId as any;
-      orderReference = bipOrder?.eforms || 'N/A';
+      orderReference = bipOrder?.eforms || bipOrder?.poNumber || 'N/A';
     }
 
     // Prepare PDF data
