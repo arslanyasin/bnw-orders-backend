@@ -50,9 +50,7 @@ export class ShipmentsService {
       .exec();
 
     if (!bankOrder) {
-      throw new NotFoundException(
-        `Bank order with ID ${bankOrderId} not found`,
-      );
+      throw new NotFoundException(`Bank order with ID ${bankOrderId} not found`);
     }
 
     // Check if order is already dispatched
@@ -75,13 +73,10 @@ export class ShipmentsService {
     }
 
     // Get courier
-    const courier = await this.couriersService.findByType(
-      dispatchDto.courierType,
-    );
+    const courier = await this.couriersService.findByType(dispatchDto.courierType);
 
     // Prepare shipment data
-    const productDesc =
-      dispatchDto.productDescription || `${bankOrder.giftCode} - (Qty: ${bankOrder.qty})`;
+    const productDesc = `${bankOrder.giftCode} - (Qty: ${bankOrder.qty})`;
 
     // Book shipment with courier
     let bookingResult;
@@ -201,13 +196,10 @@ export class ShipmentsService {
     }
 
     // Get courier
-    const courier = await this.couriersService.findByType(
-      dispatchDto.courierType,
-    );
+    const courier = await this.couriersService.findByType(dispatchDto.courierType);
 
     // Prepare shipment data
-    const productDesc =
-      dispatchDto.productDescription || `${bipOrder.giftCode} - (Qty: ${bipOrder.qty})`;
+    const productDesc = `${bipOrder.giftCode} - (Qty: ${bipOrder.qty})`;
 
     // Book shipment with courier
     let bookingResult;
@@ -304,9 +296,7 @@ export class ShipmentsService {
       .exec();
 
     if (!bankOrder) {
-      throw new NotFoundException(
-        `Bank order with ID ${bankOrderId} not found`,
-      );
+      throw new NotFoundException(`Bank order with ID ${bankOrderId} not found`);
     }
 
     // Check if order is already dispatched
@@ -339,9 +329,7 @@ export class ShipmentsService {
     }
 
     // Get courier
-    const courier = await this.couriersService.findByType(
-      manualDispatchDto.courierType,
-    );
+    const courier = await this.couriersService.findByType(manualDispatchDto.courierType);
 
     // Prepare shipment data
     const productDesc =
@@ -434,9 +422,7 @@ export class ShipmentsService {
     }
 
     // Get courier
-    const courier = await this.couriersService.findByType(
-      manualDispatchDto.courierType,
-    );
+    const courier = await this.couriersService.findByType(manualDispatchDto.courierType);
 
     // Prepare shipment data
     const productDesc =
@@ -523,8 +509,7 @@ export class ShipmentsService {
     let filteredData = data;
     if (courierType) {
       filteredData = data.filter(
-        (shipment: any) =>
-          shipment.courierId?.courierType === courierType,
+        (shipment: any) => shipment.courierId?.courierType === courierType,
       );
     }
 
@@ -621,9 +606,7 @@ export class ShipmentsService {
   async trackShipment(id: string): Promise<any> {
     const shipment = await this.findOne(id);
 
-    const courier = await this.couriersService.findOne(
-      shipment.courierId.toString(),
-    );
+    const courier = await this.couriersService.findOne(shipment.courierId.toString());
 
     let trackingResult;
 
