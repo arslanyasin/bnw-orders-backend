@@ -81,8 +81,7 @@ export class ShipmentsService {
 
     // Prepare shipment data
     const productDesc =
-      dispatchDto.productDescription ||
-      `${bankOrder.product} - ${bankOrder.brand} (Qty: ${bankOrder.qty})`;
+      dispatchDto.productDescription || `${bankOrder.giftCode} - (Qty: ${bankOrder.qty})`;
 
     // Book shipment with courier
     let bookingResult;
@@ -208,8 +207,7 @@ export class ShipmentsService {
 
     // Prepare shipment data
     const productDesc =
-      dispatchDto.productDescription ||
-      `${bipOrder.product} (Qty: ${bipOrder.qty})`;
+      dispatchDto.productDescription || `${bipOrder.giftCode} - (Qty: ${bipOrder.qty})`;
 
     // Book shipment with courier
     let bookingResult;
