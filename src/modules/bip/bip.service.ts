@@ -15,6 +15,7 @@ import {
 import { ProductsService } from '@modules/products/products.service';
 import { Product } from '@modules/products/schemas/product.schema';
 import { UpdateOrderStatusDto } from '@common/dto/update-order-status.dto';
+import { UpdateBipOrderDto } from './dto/update-bip-order.dto';
 import { ProductType } from '@common/enums/product-type.enum';
 import { WhatsAppService } from '@common/services/whatsapp.service';
 import { OrderStatus } from '@common/enums/order-status.enum';
@@ -429,6 +430,81 @@ export class BipService {
     return order;
   }
 
+  async update(
+    id: string,
+    updateBipOrderDto: UpdateBipOrderDto,
+  ): Promise<Bip> {
+    // Validate ObjectId
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Invalid order ID format');
+    }
+
+    // Find the order
+    const order = await this.bipModel.findOne({
+      _id: id,
+      isDeleted: false,
+    });
+
+    if (!order) {
+      throw new NotFoundException(`BIP order with ID ${id} not found`);
+    }
+
+    // Prevent updates if order is already dispatched or delivered
+    if (
+      order.status === OrderStatus.DISPATCH ||
+      order.status === OrderStatus.DELIVERED
+    ) {
+      throw new BadRequestException(
+        `Cannot update order details. Order is already ${order.status}`,
+      );
+    }
+
+    // Update fields if provided
+    if (updateBipOrderDto.customerName !== undefined) {
+      order.customerName = updateBipOrderDto.customerName;
+    }
+    if (updateBipOrderDto.cnic !== undefined) {
+      order.cnic = updateBipOrderDto.cnic;
+    }
+    if (updateBipOrderDto.mobile1 !== undefined) {
+      order.mobile1 = updateBipOrderDto.mobile1;
+    }
+    if (updateBipOrderDto.authorizedReceiver !== undefined) {
+      order.authorizedReceiver = updateBipOrderDto.authorizedReceiver;
+    }
+    if (updateBipOrderDto.receiverCnic !== undefined) {
+      order.receiverCnic = updateBipOrderDto.receiverCnic;
+    }
+    if (updateBipOrderDto.address !== undefined) {
+      order.address = updateBipOrderDto.address;
+    }
+    if (updateBipOrderDto.city !== undefined) {
+      order.city = updateBipOrderDto.city;
+    }
+    if (updateBipOrderDto.product !== undefined) {
+      order.product = updateBipOrderDto.product;
+    }
+    if (updateBipOrderDto.qty !== undefined) {
+      order.qty = updateBipOrderDto.qty;
+    }
+    if (updateBipOrderDto.amount !== undefined) {
+      order.amount = updateBipOrderDto.amount;
+    }
+    if (updateBipOrderDto.color !== undefined) {
+      order.color = updateBipOrderDto.color;
+    }
+
+    await order.save();
+
+    // Return the updated order with populated fields
+    const updatedOrder = await this.findOne(id);
+    if (!updatedOrder) {
+      throw new NotFoundException(`BIP order with ID ${id} not found after update`);
+    }
+
+    return updatedOrder;
+  }
+
   /**
    * Send WhatsApp confirmation messages for selected BIP orders
    */
@@ -685,8 +761,8 @@ export class BipService {
   ): Promise<{ success: boolean; message: string; order?: any }> {
     const order = await this.bipModel
       .findOne({
-        eforms: eforms,
-        cnic: cnic,
+        eforms: eforms.trim(),
+        cnic: cnic.trim(),
         isDeleted: false,
       })
       .populate({

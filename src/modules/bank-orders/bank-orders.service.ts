@@ -11,6 +11,7 @@ import {
 import { ProductsService } from '@modules/products/products.service';
 import { Product } from '@modules/products/schemas/product.schema';
 import { UpdateOrderStatusDto } from '@common/dto/update-order-status.dto';
+import { UpdateBankOrderDto } from './dto/update-bank-order.dto';
 import { ProductType } from '@common/enums/product-type.enum';
 import { WhatsAppService } from '@common/services/whatsapp.service';
 import { OrderStatus } from '@common/enums/order-status.enum';
@@ -392,6 +393,81 @@ export class BankOrdersService {
     await order.save();
 
     return order;
+  }
+
+  async update(
+    id: string,
+    updateBankOrderDto: UpdateBankOrderDto,
+  ): Promise<BankOrder> {
+    // Validate ObjectId
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Invalid order ID format');
+    }
+
+    // Find the order
+    const order = await this.bankOrderModel.findOne({
+      _id: id,
+      isDeleted: false,
+    });
+
+    if (!order) {
+      throw new NotFoundException(`Bank order with ID ${id} not found`);
+    }
+
+    // Prevent updates if order is already dispatched or delivered
+    if (
+      order.status === OrderStatus.DISPATCH ||
+      order.status === OrderStatus.DELIVERED
+    ) {
+      throw new BadRequestException(
+        `Cannot update order details. Order is already ${order.status}`,
+      );
+    }
+
+    // Update fields if provided
+    if (updateBankOrderDto.customerName !== undefined) {
+      order.customerName = updateBankOrderDto.customerName;
+    }
+    if (updateBankOrderDto.cnic !== undefined) {
+      order.cnic = updateBankOrderDto.cnic;
+    }
+    if (updateBankOrderDto.mobile1 !== undefined) {
+      order.mobile1 = updateBankOrderDto.mobile1;
+    }
+    if (updateBankOrderDto.mobile2 !== undefined) {
+      order.mobile2 = updateBankOrderDto.mobile2;
+    }
+    if (updateBankOrderDto.phone1 !== undefined) {
+      order.phone1 = updateBankOrderDto.phone1;
+    }
+    if (updateBankOrderDto.phone2 !== undefined) {
+      order.phone2 = updateBankOrderDto.phone2;
+    }
+    if (updateBankOrderDto.address !== undefined) {
+      order.address = updateBankOrderDto.address;
+    }
+    if (updateBankOrderDto.city !== undefined) {
+      order.city = updateBankOrderDto.city;
+    }
+    if (updateBankOrderDto.brand !== undefined) {
+      order.brand = updateBankOrderDto.brand;
+    }
+    if (updateBankOrderDto.product !== undefined) {
+      order.product = updateBankOrderDto.product;
+    }
+    if (updateBankOrderDto.qty !== undefined) {
+      order.qty = updateBankOrderDto.qty;
+    }
+
+    await order.save();
+
+    // Return the updated order with populated fields
+    const updatedOrder = await this.findOne(id);
+    if (!updatedOrder) {
+      throw new NotFoundException(`Bank order with ID ${id} not found after update`);
+    }
+
+    return updatedOrder;
   }
 
   private async getOrCreateProduct(

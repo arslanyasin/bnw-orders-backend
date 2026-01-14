@@ -29,6 +29,7 @@ import { Roles } from '@common/decorators/roles.decorator';
 import { UserRole } from '@common/interfaces/user-role.enum';
 import { ParseObjectIdPipe } from '@common/pipes/parse-objectid.pipe';
 import { UpdateOrderStatusDto } from '@common/dto/update-order-status.dto';
+import { UpdateBipOrderDto } from './dto/update-bip-order.dto';
 import { SendWhatsAppConfirmationsDto } from '@common/dto/send-whatsapp-confirmations.dto';
 
 @ApiTags('BIP Orders')
@@ -151,6 +152,41 @@ export class BipController {
   @ApiResponse({ status: 404, description: 'BIP order not found' })
   findOne(@Param('id', ParseObjectIdPipe) id: string) {
     return this.bipService.findOne(id);
+  }
+
+  @Patch(':id')
+  @Roles(UserRole.ADMIN, UserRole.STAFF)
+  @ApiOperation({ summary: 'Update BIP order details (Admin/Staff only)' })
+  @ApiParam({ name: 'id', description: 'BIP Order MongoDB ObjectId' })
+  @ApiResponse({
+    status: 200,
+    description: 'Order updated successfully',
+    schema: {
+      example: {
+        _id: '507f1f77bcf86cd799439011',
+        customerName: 'John Doe Updated',
+        cnic: '1234567890123',
+        mobile1: '+923001234567',
+        address: '456 New Street',
+        city: 'Lahore',
+        product: 'Galaxy S24 Ultra',
+        qty: 2,
+        amount: 55000,
+        status: 'pending',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request - Invalid order ID or cannot update dispatched/delivered order',
+  })
+  @ApiResponse({ status: 403, description: 'Forbidden - Insufficient permissions' })
+  @ApiResponse({ status: 404, description: 'BIP order not found' })
+  update(
+    @Param('id', ParseObjectIdPipe) id: string,
+    @Body() updateBipOrderDto: UpdateBipOrderDto,
+  ) {
+    return this.bipService.update(id, updateBipOrderDto);
   }
 
   @Patch(':id/status')

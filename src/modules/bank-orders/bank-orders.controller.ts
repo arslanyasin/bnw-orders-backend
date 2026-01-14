@@ -29,6 +29,7 @@ import { Roles } from '@common/decorators/roles.decorator';
 import { UserRole } from '@common/interfaces/user-role.enum';
 import { ParseObjectIdPipe } from '@common/pipes/parse-objectid.pipe';
 import { UpdateOrderStatusDto } from '@common/dto/update-order-status.dto';
+import { UpdateBankOrderDto } from './dto/update-bank-order.dto';
 import { SendWhatsAppConfirmationsDto } from '@common/dto/send-whatsapp-confirmations.dto';
 
 @ApiTags('Bank Orders')
@@ -151,6 +152,40 @@ export class BankOrdersController {
   @ApiResponse({ status: 404, description: 'Bank order not found' })
   findOne(@Param('id', ParseObjectIdPipe) id: string) {
     return this.bankOrdersService.findOne(id);
+  }
+
+  @Patch(':id')
+  @Roles(UserRole.ADMIN, UserRole.STAFF)
+  @ApiOperation({ summary: 'Update bank order details (Admin/Staff only)' })
+  @ApiParam({ name: 'id', description: 'Bank Order MongoDB ObjectId' })
+  @ApiResponse({
+    status: 200,
+    description: 'Order updated successfully',
+    schema: {
+      example: {
+        _id: '507f1f77bcf86cd799439011',
+        customerName: 'John Doe Updated',
+        cnic: '1234567890123',
+        mobile1: '+923001234567',
+        address: '456 New Street',
+        city: 'Lahore',
+        product: 'Galaxy S24 Ultra',
+        qty: 2,
+        status: 'pending',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad request - Invalid order ID or cannot update dispatched/delivered order',
+  })
+  @ApiResponse({ status: 403, description: 'Forbidden - Insufficient permissions' })
+  @ApiResponse({ status: 404, description: 'Bank order not found' })
+  update(
+    @Param('id', ParseObjectIdPipe) id: string,
+    @Body() updateBankOrderDto: UpdateBankOrderDto,
+  ) {
+    return this.bankOrdersService.update(id, updateBankOrderDto);
   }
 
   @Patch(':id/status')
