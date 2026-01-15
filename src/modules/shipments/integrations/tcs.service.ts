@@ -353,6 +353,9 @@ export class TcsService {
       if (error.response?.data) {
         const errorData = error.response.data;
 
+        // Log the full error response for debugging
+        this.logger.error('TCS Error Response:', JSON.stringify(errorData, null, 2));
+
         // Check for 401 unauthorized
         if (errorData.code === 401) {
           return {
@@ -386,16 +389,32 @@ export class TcsService {
           };
         }
 
+        // Fallback: try to extract any meaningful error message
+        let errorMessage = 'Unknown error occurred';
+
+        if (errorData.message) {
+          errorMessage = errorData.message;
+        } else if (typeof errorData === 'string') {
+          errorMessage = errorData;
+        } else if (errorData.error && typeof errorData.error === 'string') {
+          errorMessage = errorData.error;
+        } else {
+          // If we can't find a message, return the whole object as string
+          errorMessage = JSON.stringify(errorData);
+        }
+
         return {
           success: false,
-          error: errorData.message || 'Unknown error occurred',
+          error: errorMessage,
           rawResponse: errorData,
         };
       }
 
+      // No response data from TCS API
+      this.logger.error('No response data from TCS API');
       return {
         success: false,
-        error: error.message || 'Unknown error occurred',
+        error: error.message || 'Failed to connect to TCS API',
         rawResponse: error.response?.data,
       };
     }
