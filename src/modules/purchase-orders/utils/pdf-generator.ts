@@ -10,6 +10,7 @@ export interface PurchaseOrderPDFData {
   products: {
     productName: string;
     bankProductNumber: string;
+    productColor?: string;
     quantity: number;
     unitPrice: number;
     totalPrice: number;
@@ -135,11 +136,17 @@ export function generatePurchaseOrderPDF(
           currentY = 50;
         }
 
+        // Build product name with color if present
+        let displayName = product.productName;
+        if (product.productColor) {
+          displayName = `${product.productName} (${product.productColor})`;
+        }
+
         doc
           .text(
-            product.productName.length > 25
-              ? product.productName.substring(0, 22) + '...'
-              : product.productName,
+            displayName.length > 25
+              ? displayName.substring(0, 22) + '...'
+              : displayName,
             headers.product.x,
             currentY,
             { width: headers.product.width }

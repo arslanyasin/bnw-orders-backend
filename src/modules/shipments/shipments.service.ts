@@ -114,11 +114,7 @@ export class ShipmentsService {
       });
     }
 
-    // Log the booking result to debug
-    console.log('Booking Result:', JSON.stringify(bookingResult, null, 2));
-
     if (!bookingResult || !bookingResult.success) {
-      console.log('Booking failed. Error:', bookingResult?.error);
       throw new InternalServerErrorException(
         `Failed to book shipment with ${dispatchDto.courierType}: ${bookingResult?.error || 'Unknown error'}`,
       );

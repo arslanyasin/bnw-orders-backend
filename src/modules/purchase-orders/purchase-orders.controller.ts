@@ -317,6 +317,7 @@ export class PurchaseOrdersController {
       products: purchaseOrder.products.map((p) => ({
         productName: p.productName,
         bankProductNumber: p.bankProductNumber,
+        productColor: p.productColor,
         quantity: p.quantity,
         unitPrice: p.unitPrice,
         totalPrice: p.totalPrice,

@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsNumber, IsMongoId, Min } from 'class-validator';
+import { IsString, IsNotEmpty, IsNumber, IsMongoId, Min, IsOptional } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreatePurchaseOrderProductDto {
@@ -9,6 +9,15 @@ export class CreatePurchaseOrderProductDto {
   @IsMongoId({ message: 'Invalid product ID format' })
   @IsNotEmpty()
   productId: string;
+
+  @ApiProperty({
+    example: 'Black',
+    description: 'Product color',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  productColor?: string;
 
   @ApiProperty({
     example: 10,

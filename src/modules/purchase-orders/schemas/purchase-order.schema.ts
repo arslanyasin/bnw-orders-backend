@@ -12,6 +12,9 @@ export class PurchaseOrderProduct {
   @ApiProperty({ example: 'BNK-2024-001', description: 'Bank product number' })
   bankProductNumber: string;
 
+  @ApiProperty({ example: 'Black', description: 'Product color', required: false })
+  productColor?: string;
+
   @ApiProperty({ example: 10, description: 'Quantity' })
   quantity: number;
 
