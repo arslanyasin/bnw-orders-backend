@@ -92,6 +92,23 @@ export class BipService {
 
         if (validationResult.isValid) {
           try {
+            // Check for duplicate eforms
+            const eformsValue = String(row.EFORMS).trim();
+            const existingBip = await this.bipModel.findOne({
+              eforms: eformsValue,
+              isDeleted: false,
+            });
+
+            if (existingBip) {
+              result.failedCount++;
+              result.failedRecords.push({
+                row: rowNumber,
+                data: row,
+                errors: [`Duplicate EFORMS: ${eformsValue} already exists in the system`],
+              });
+              continue;
+            }
+
             // Get or create product based on GIFTCODE
             const product = await this.getOrCreateProduct(
               String(row.GIFTCODE).trim(),

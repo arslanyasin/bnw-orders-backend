@@ -85,6 +85,23 @@ export class BankOrdersService {
 
         if (validationResult.isValid) {
           try {
+            // Check for duplicate PO number
+            const poNumber = String(row['PO #']).trim();
+            const existingOrder = await this.bankOrderModel.findOne({
+              poNo: poNumber,
+              isDeleted: false,
+            });
+
+            if (existingOrder) {
+              result.failedCount++;
+              result.failedRecords.push({
+                row: rowNumber,
+                data: row,
+                errors: [`Duplicate PO #: ${poNumber} already exists in the system`],
+              });
+              continue;
+            }
+
             // Get or create product based on GIFTCODE
             const product = await this.getOrCreateProduct(
               String(row.GIFTCODE).trim(),
