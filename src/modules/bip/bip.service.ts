@@ -712,7 +712,7 @@ export class BipService {
     status: 'confirmed' | 'cancelled',
   ): Promise<{ success: boolean; message: string; order?: any }> {
     const order = await this.bipModel.findOne({
-      poNumber: poNumber,
+      eforms: poNumber,
       isDeleted: false,
     });
 
