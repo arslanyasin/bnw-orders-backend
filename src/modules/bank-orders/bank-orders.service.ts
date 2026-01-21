@@ -538,7 +538,7 @@ export class BankOrdersService {
       // Try to find existing product by bankProductNumber (GIFTCODE) AND productType
       const existingProducts = await this.productsService.findAll(
         1,
-        10,
+        1000,
         undefined,
         giftCode,
         ProductType.BANK_ORDER,
