@@ -128,6 +128,7 @@ export class PurchaseOrdersService {
     limit: number = 10,
     vendorId?: string,
     status?: string,
+    search?: string,
   ): Promise<{
     data: PurchaseOrder[];
     total: number;
@@ -135,6 +136,155 @@ export class PurchaseOrdersService {
     totalPages: number;
   }> {
     const skip = (page - 1) * limit;
+
+    // If search is provided, use aggregation pipeline
+    if (search && search.trim()) {
+      const searchRegex = new RegExp(search.trim(), 'i');
+
+      const pipeline: any[] = [
+        // Match non-deleted orders
+        { $match: { isDeleted: false } },
+
+        // Lookup vendor
+        {
+          $lookup: {
+            from: 'vendors',
+            localField: 'vendorId',
+            foreignField: '_id',
+            as: 'vendor',
+          },
+        },
+        { $unwind: { path: '$vendor', preserveNullAndEmptyArrays: true } },
+
+        // Lookup BIP order for eforms
+        {
+          $lookup: {
+            from: 'bips',
+            localField: 'bipOrderId',
+            foreignField: '_id',
+            as: 'bipOrder',
+          },
+        },
+        { $unwind: { path: '$bipOrder', preserveNullAndEmptyArrays: true } },
+
+        // Lookup bank order
+        {
+          $lookup: {
+            from: 'bankorders',
+            localField: 'bankOrderId',
+            foreignField: '_id',
+            as: 'bankOrder',
+          },
+        },
+        { $unwind: { path: '$bankOrder', preserveNullAndEmptyArrays: true } },
+
+        // Match search criteria
+        {
+          $match: {
+            $or: [
+              { 'vendor.vendorName': searchRegex },
+              { 'products.productName': searchRegex },
+              { 'products.bankProductNumber': searchRegex },
+              { poNumber: searchRegex },
+              { 'bipOrder.eforms': searchRegex },
+            ],
+          },
+        },
+      ];
+
+      // Add vendor filter if provided
+      if (vendorId) {
+        if (!Types.ObjectId.isValid(vendorId)) {
+          throw new BadRequestException('Invalid vendor ID format');
+        }
+        pipeline.push({
+          $match: { vendorId: new Types.ObjectId(vendorId) },
+        });
+      }
+
+      // Add status filter if provided
+      if (status) {
+        pipeline.push({
+          $match: { status },
+        });
+      }
+
+      // Get total count
+      const countPipeline = [...pipeline, { $count: 'total' }];
+      const countResult = await this.purchaseOrderModel.aggregate(countPipeline);
+      const total = countResult.length > 0 ? countResult[0].total : 0;
+
+      // Add sorting, pagination
+      pipeline.push(
+        { $sort: { createdAt: -1 } },
+        { $skip: skip },
+        { $limit: limit },
+      );
+
+      // Project to match populate structure
+      pipeline.push({
+        $project: {
+          _id: 1,
+          poNumber: 1,
+          vendorId: 1,
+          bankOrderId: 1,
+          bipOrderId: 1,
+          products: 1,
+          totalAmount: 1,
+          status: 1,
+          mergedPoId: 1,
+          isMerged: 1,
+          isDeleted: 1,
+          createdAt: 1,
+          updatedAt: 1,
+          vendor: {
+            _id: '$vendor._id',
+            vendorName: '$vendor.vendorName',
+            email: '$vendor.email',
+            phone: '$vendor.phone',
+            address: '$vendor.address',
+            city: '$vendor.city',
+          },
+          bankOrder: {
+            _id: '$bankOrder._id',
+            refNo: '$bankOrder.refNo',
+            customerName: '$bankOrder.customerName',
+            cnic: '$bankOrder.cnic',
+            product: '$bankOrder.product',
+            giftCode: '$bankOrder.giftCode',
+            status: '$bankOrder.status',
+          },
+          bipOrder: {
+            _id: '$bipOrder._id',
+            eforms: '$bipOrder.eforms',
+            customerName: '$bipOrder.customerName',
+            cnic: '$bipOrder.cnic',
+            product: '$bipOrder.product',
+            giftCode: '$bipOrder.giftCode',
+            status: '$bipOrder.status',
+          },
+        },
+      });
+
+      const data = await this.purchaseOrderModel.aggregate(pipeline);
+
+      // Map aggregation results to match populate format
+      const mappedData = data.map((po) => ({
+        ...po,
+        vendorId: po.vendor || null,
+        bankOrderId: po.bankOrder || null,
+        bipOrderId: po.bipOrder || null,
+      }));
+
+      return {
+        data: mappedData as any,
+        total,
+        page,
+        totalPages: Math.ceil(total / limit),
+      };
+    }
+
+    // Regular query without search
     const query: any = { isDeleted: false };
 
     // Filter by vendor if provided

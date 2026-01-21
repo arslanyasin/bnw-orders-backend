@@ -121,6 +121,12 @@ export class PurchaseOrdersController {
     description: 'Filter by status (draft, active, merged, cancelled)',
     example: 'active',
   })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    type: String,
+    description: 'Search by vendor name, product name, product code, PO number, or eForms',
+  })
   @ApiResponse({
     status: 200,
     description: 'Purchase orders retrieved successfully',
@@ -132,6 +138,7 @@ export class PurchaseOrdersController {
     @Query('limit') limit?: number,
     @Query('vendorId') vendorId?: string,
     @Query('status') status?: string,
+    @Query('search') search?: string,
   ): Promise<{
     data: PurchaseOrder[];
     total: number;
@@ -143,6 +150,7 @@ export class PurchaseOrdersController {
       limit ? Number(limit) : 10,
       vendorId,
       status,
+      search,
     );
   }
 
