@@ -370,7 +370,7 @@ export class DeliveryChallansService {
    */
   async findAll(
     page: number = 1,
-    limit: number = 10,
+    limit: number = 1000,
     trackingNumber?: string,
     customerName?: string,
   ): Promise<{
