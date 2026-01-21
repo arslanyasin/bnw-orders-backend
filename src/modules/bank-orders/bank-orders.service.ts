@@ -313,8 +313,36 @@ export class BankOrdersService {
       ];
     }
 
-    // Add status filter
-    if (status && status.trim()) {
+    // Add status filter - if statusStartDate/statusEndDate provided with status, filter by status history
+    // Otherwise, filter by current status
+    const useStatusHistory = (status && (statusStartDate || statusEndDate)) || (statusFilter && (statusStartDate || statusEndDate));
+
+    if (useStatusHistory) {
+      // Use status history filtering when dates are provided
+      const statusToFilter = statusFilter || status;
+      if (statusToFilter && statusToFilter.trim()) {
+        const timestampQuery: any = {};
+        if (statusStartDate) {
+          timestampQuery.$gte = new Date(statusStartDate);
+        }
+        if (statusEndDate) {
+          const end = new Date(statusEndDate);
+          end.setHours(23, 59, 59, 999);
+          timestampQuery.$lte = end;
+        }
+
+        query.$and = query.$and || [];
+        query.$and.push({
+          statusHistory: {
+            $elemMatch: {
+              status: statusToFilter.trim(),
+              ...(Object.keys(timestampQuery).length > 0 && { timestamp: timestampQuery }),
+            },
+          },
+        });
+      }
+    } else if (status && status.trim()) {
+      // Simple current status filter when no dates provided
       query.status = status.trim();
     }
 
@@ -328,7 +356,7 @@ export class BankOrdersService {
       query.bankId = new Types.ObjectId(bankId);
     }
 
-    // Add date range filter
+    // Add date range filter (for orderDate)
     if (startDate || endDate) {
       query.orderDate = {};
       if (startDate) {
@@ -339,35 +367,6 @@ export class BankOrdersService {
         end.setHours(23, 59, 59, 999); // Include entire end date
         query.orderDate.$lte = end;
       }
-    }
-
-    // Add status history filter - filter by specific status and date range
-    if (statusFilter && (statusStartDate || statusEndDate)) {
-      const statusHistoryQuery: any = {
-        'statusHistory.status': statusFilter,
-      };
-
-      if (statusStartDate || statusEndDate) {
-        statusHistoryQuery['statusHistory.timestamp'] = {};
-        if (statusStartDate) {
-          statusHistoryQuery['statusHistory.timestamp'].$gte = new Date(statusStartDate);
-        }
-        if (statusEndDate) {
-          const end = new Date(statusEndDate);
-          end.setHours(23, 59, 59, 999);
-          statusHistoryQuery['statusHistory.timestamp'].$lte = end;
-        }
-      }
-
-      query.$and = query.$and || [];
-      query.$and.push({
-        statusHistory: {
-          $elemMatch: {
-            status: statusFilter,
-            timestamp: statusHistoryQuery['statusHistory.timestamp'] || { $exists: true },
-          },
-        },
-      });
     }
 
     const [data, total] = await Promise.all([
