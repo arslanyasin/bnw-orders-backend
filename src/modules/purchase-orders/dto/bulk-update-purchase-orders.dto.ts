@@ -1,7 +1,7 @@
 import { IsArray, ValidateNested, IsString, IsNotEmpty } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
-import { ProductSerialNumberDto } from './update-purchase-order.dto';
+import { UpdateProductDto } from './update-purchase-order.dto';
 
 export class POUpdateDto {
   @ApiProperty({
@@ -13,7 +13,7 @@ export class POUpdateDto {
   poId: string;
 
   @ApiProperty({
-    type: [ProductSerialNumberDto],
+    type: [UpdateProductDto],
     description: 'Array of products with their serial numbers for this PO',
     example: [
       { productId: '507f1f77bcf86cd799439011', serialNumber: 'SN123456789' },
@@ -21,8 +21,8 @@ export class POUpdateDto {
   })
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => ProductSerialNumberDto)
-  products: ProductSerialNumberDto[];
+  @Type(() => UpdateProductDto)
+  products: UpdateProductDto[];
 }
 
 export class BulkUpdatePurchaseOrdersDto {
