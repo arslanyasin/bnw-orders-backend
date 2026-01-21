@@ -5,5 +5,6 @@ export enum OrderStatus {
   RETURNED = 'returned',
   PROCESSING = 'processing',
   DISPATCH = 'dispatched',
+  SHIPPED = 'shipped',
   DELIVERED = 'delivered',
 }
