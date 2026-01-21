@@ -905,6 +905,7 @@ export class PurchaseOrdersService {
             unitPrice: bulkCreateDto.unitPrice,
             totalPrice,
             bankOrderId: new Types.ObjectId(orderId),
+            orderPoNumber: bankOrder.poNo || undefined,
           };
 
           // Generate PO number
@@ -969,6 +970,7 @@ export class PurchaseOrdersService {
             unitPrice: bulkCreateDto.unitPrice,
             totalPrice,
             bipOrderId: new Types.ObjectId(orderId),
+            orderPoNumber: bipOrder.poNumber || undefined,
           };
 
           // Generate PO number

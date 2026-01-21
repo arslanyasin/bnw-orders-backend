@@ -30,6 +30,9 @@ export class PurchaseOrderProduct {
   @ApiProperty({ example: '507f1f77bcf86cd799439011', description: 'BIP Order ID reference', required: false })
   bipOrderId?: Types.ObjectId;
 
+  @ApiProperty({ example: 'BO-2024-001', description: 'Bank Order PO number', required: false })
+  orderPoNumber?: string;
+
   @ApiProperty({ example: 'PO-2024-0001', description: 'Source PO number (for merged POs)', required: false })
   sourcePO?: string;
 
