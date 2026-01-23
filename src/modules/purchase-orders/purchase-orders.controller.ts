@@ -175,7 +175,7 @@ export class PurchaseOrdersController {
 
   @Get('export')
   @Roles(UserRole.ADMIN, UserRole.STAFF)
-  @ApiOperation({ summary: 'Export purchase orders to Excel filtered by bank ID and date range' })
+  @ApiOperation({ summary: 'Export purchase orders to Excel filtered by bank ID, date range, and order type' })
   @ApiQuery({
     name: 'bankId',
     required: true,
@@ -197,6 +197,13 @@ export class PurchaseOrdersController {
     description: 'Filter by end date (ISO format)',
     example: '2024-12-31',
   })
+  @ApiQuery({
+    name: 'orderType',
+    required: false,
+    enum: ['bank-order', 'bip-order', 'both'],
+    description: 'Filter by order type: bank-order (Bank Orders only), bip-order (BIP Orders only), or both (default)',
+    example: 'both',
+  })
   @ApiResponse({
     status: 200,
     description: 'Excel file generated successfully',
@@ -217,6 +224,7 @@ export class PurchaseOrdersController {
     @Res() res: Response,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
+    @Query('orderType') orderType?: 'bank-order' | 'bip-order' | 'both',
   ): Promise<void> {
     if (!bankId) {
       throw new BadRequestException('Bank ID is required');
@@ -226,6 +234,7 @@ export class PurchaseOrdersController {
       bankId,
       startDate ? new Date(startDate) : undefined,
       endDate ? new Date(endDate) : undefined,
+      orderType,
     );
 
     const filename = `purchase-orders-${bankId}-${Date.now()}.xlsx`;

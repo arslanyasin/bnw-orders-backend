@@ -1103,12 +1103,55 @@ export class PurchaseOrdersService {
   }
 
   /**
+   * Build filter for order type (bank-order, bip-order, or both)
+   */
+  private buildOrderTypeFilter(
+    bankId: string,
+    orderType?: 'bank-order' | 'bip-order' | 'both',
+  ): any {
+    const bankIdObj = new Types.ObjectId(bankId);
+
+    // Default to 'both' if not specified
+    if (!orderType || orderType === 'both') {
+      return {
+        $or: [
+          { 'bankOrder.bankId': bankIdObj },
+          { 'bipOrder.bankId': bankIdObj },
+        ],
+      };
+    }
+
+    // Filter only bank orders
+    if (orderType === 'bank-order') {
+      return {
+        'bankOrder.bankId': bankIdObj,
+      };
+    }
+
+    // Filter only bip orders
+    if (orderType === 'bip-order') {
+      return {
+        'bipOrder.bankId': bankIdObj,
+      };
+    }
+
+    // Fallback to both (should not reach here)
+    return {
+      $or: [
+        { 'bankOrder.bankId': bankIdObj },
+        { 'bipOrder.bankId': bankIdObj },
+      ],
+    };
+  }
+
+  /**
    * Export purchase orders by bank ID to Excel
    */
   async exportByBankId(
     bankId: string,
     startDate?: Date,
     endDate?: Date,
+    orderType?: 'bank-order' | 'bip-order' | 'both',
   ): Promise<Buffer> {
     // Validate bankId
     if (!Types.ObjectId.isValid(bankId)) {
@@ -1168,14 +1211,9 @@ export class PurchaseOrdersService {
       },
       { $unwind: { path: '$vendor', preserveNullAndEmptyArrays: true } },
 
-      // Filter by bankId
+      // Filter by bankId and orderType
       {
-        $match: {
-          $or: [
-            { 'bankOrder.bankId': new Types.ObjectId(bankId) },
-            { 'bipOrder.bankId': new Types.ObjectId(bankId) },
-          ],
-        },
+        $match: this.buildOrderTypeFilter(bankId, orderType),
       },
 
       // Sort by creation date
