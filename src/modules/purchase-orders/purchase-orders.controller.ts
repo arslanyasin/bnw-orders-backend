@@ -11,6 +11,7 @@ import {
   UseGuards,
   Res,
   HttpStatus,
+  BadRequestException,
 } from '@nestjs/common';
 import { Response } from 'express';
 import {
@@ -170,6 +171,73 @@ export class PurchaseOrdersController {
       startDate ? new Date(startDate) : undefined,
       endDate ? new Date(endDate) : undefined,
     );
+  }
+
+  @Get('export')
+  @Roles(UserRole.ADMIN, UserRole.STAFF)
+  @ApiOperation({ summary: 'Export purchase orders to Excel filtered by bank ID and date range' })
+  @ApiQuery({
+    name: 'bankId',
+    required: true,
+    type: String,
+    description: 'Bank ID to filter purchase orders',
+    example: '507f1f77bcf86cd799439011',
+  })
+  @ApiQuery({
+    name: 'startDate',
+    required: false,
+    type: String,
+    description: 'Filter by start date (ISO format)',
+    example: '2024-01-01',
+  })
+  @ApiQuery({
+    name: 'endDate',
+    required: false,
+    type: String,
+    description: 'Filter by end date (ISO format)',
+    example: '2024-12-31',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Excel file generated successfully',
+    content: {
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': {
+        schema: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 400, description: 'Bad request - Missing or invalid bankId' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  async exportPurchaseOrders(
+    @Query('bankId') bankId: string,
+    @Res() res: Response,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ): Promise<void> {
+    if (!bankId) {
+      throw new BadRequestException('Bank ID is required');
+    }
+
+    const excelBuffer = await this.purchaseOrdersService.exportByBankId(
+      bankId,
+      startDate ? new Date(startDate) : undefined,
+      endDate ? new Date(endDate) : undefined,
+    );
+
+    const filename = `purchase-orders-${bankId}-${Date.now()}.xlsx`;
+
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Length', excelBuffer.length);
+
+    res.status(HttpStatus.OK).send(excelBuffer);
   }
 
   @Get('combinable/list')

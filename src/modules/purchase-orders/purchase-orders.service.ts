@@ -14,6 +14,7 @@ import { VendorsService } from '@modules/vendors/vendors.service';
 import { ProductsService } from '@modules/products/products.service';
 import { BankOrder } from '@modules/bank-orders/schemas/bank-order.schema';
 import { Bip } from '@modules/bip/schemas/bip.schema';
+import * as XLSX from 'xlsx';
 
 @Injectable()
 export class PurchaseOrdersService {
@@ -1099,5 +1100,125 @@ export class PurchaseOrdersService {
     }
 
     return result;
+  }
+
+  /**
+   * Export purchase orders by bank ID to Excel
+   */
+  async exportByBankId(
+    bankId: string,
+    startDate?: Date,
+    endDate?: Date,
+  ): Promise<Buffer> {
+    // Validate bankId
+    if (!Types.ObjectId.isValid(bankId)) {
+      throw new BadRequestException('Invalid bank ID format');
+    }
+
+    // Build initial match criteria
+    const initialMatch: any = { isDeleted: false };
+
+    // Add date range filter if provided
+    if (startDate || endDate) {
+      initialMatch.createdAt = {};
+      if (startDate) {
+        initialMatch.createdAt.$gte = new Date(startDate);
+      }
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        initialMatch.createdAt.$lte = end;
+      }
+    }
+
+    // Build aggregation pipeline
+    const pipeline: any[] = [
+      { $match: initialMatch },
+
+      // Lookup BankOrder
+      {
+        $lookup: {
+          from: 'bankorders',
+          localField: 'bankOrderId',
+          foreignField: '_id',
+          as: 'bankOrder',
+        },
+      },
+      { $unwind: { path: '$bankOrder', preserveNullAndEmptyArrays: true } },
+
+      // Lookup BipOrder
+      {
+        $lookup: {
+          from: 'bips',
+          localField: 'bipOrderId',
+          foreignField: '_id',
+          as: 'bipOrder',
+        },
+      },
+      { $unwind: { path: '$bipOrder', preserveNullAndEmptyArrays: true } },
+
+      // Lookup Vendor
+      {
+        $lookup: {
+          from: 'vendors',
+          localField: 'vendorId',
+          foreignField: '_id',
+          as: 'vendor',
+        },
+      },
+      { $unwind: { path: '$vendor', preserveNullAndEmptyArrays: true } },
+
+      // Filter by bankId
+      {
+        $match: {
+          $or: [
+            { 'bankOrder.bankId': new Types.ObjectId(bankId) },
+            { 'bipOrder.bankId': new Types.ObjectId(bankId) },
+          ],
+        },
+      },
+
+      // Sort by creation date
+      { $sort: { createdAt: -1 } },
+    ];
+
+    const purchaseOrders = await this.purchaseOrderModel
+      .aggregate(pipeline)
+      .exec();
+
+    // Transform data to Excel rows
+    const excelRows: any[] = [];
+
+    for (const po of purchaseOrders) {
+      // Skip POs without products
+      if (!po.products || po.products.length === 0) {
+        continue;
+      }
+
+      for (const product of po.products) {
+        excelRows.push({
+          'PO Number': po.poNumber,
+          'Purchase Order Number': po.bankOrder?.poNumber || '',
+          'Vendor Name': po.vendor?.vendorName || 'N/A',
+          'Product Name': product.productName,
+          'Product Serial Number': product.serialNumber || '',
+          'Product Code': product.bankProductNumber,
+          'Price': product.unitPrice,
+        });
+      }
+    }
+
+    // Generate Excel file
+    const worksheet = XLSX.utils.json_to_sheet(excelRows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Purchase Orders');
+
+    // Generate buffer
+    const excelBuffer = XLSX.write(workbook, {
+      type: 'buffer',
+      bookType: 'xlsx',
+    }) as Buffer;
+
+    return excelBuffer;
   }
 }
