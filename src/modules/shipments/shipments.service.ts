@@ -111,6 +111,7 @@ export class ShipmentsService {
         length: dispatchDto.length,
         width: dispatchDto.width,
         height: dispatchDto.height,
+        serviceCode: dispatchDto.serviceCode,
       });
     }
 
@@ -244,6 +245,7 @@ export class ShipmentsService {
         length: dispatchDto.length,
         width: dispatchDto.width,
         height: dispatchDto.height,
+        serviceCode: dispatchDto.serviceCode,
       });
     }
 

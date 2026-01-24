@@ -26,6 +26,7 @@ export interface TcsBookingRequest {
   length?: number;
   width?: number;
   height?: number;
+  serviceCode?: string;
 }
 
 export interface TcsBookingResponse {
@@ -271,7 +272,7 @@ export class TcsService {
           costcentercode: '2',
           referenceno: bookingData.referenceNumber || '',
           contentdesc: bookingData.productDescription,
-          servicecode: 'O', // O for Overnight
+          servicecode: bookingData.serviceCode || 'O', // Default to O (Overnight) if not provided
           parametertype: '',
           shipmentdate: new Date().toLocaleString('en-GB', {
             day: '2-digit',

@@ -105,4 +105,13 @@ export class DispatchOrderDto {
   @IsNumber()
   @IsOptional()
   height?: number;
+
+  @ApiProperty({
+    example: 'O',
+    description: 'TCS service code (O = Overnight, D = Detain, M = Morning)',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  serviceCode?: string;
 }
