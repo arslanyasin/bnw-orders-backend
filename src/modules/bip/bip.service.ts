@@ -363,7 +363,7 @@ export class BipService {
       if (statusToFilter && statusToFilter.trim()) {
         const timestampQuery: any = {};
         if (statusStartDate) {
-          timestampQuery.$gte = new Date(statusStartDate);
+          timestampQuery.$gte = statusStartDate;
         }
         if (statusEndDate) {
           const end = new Date(statusEndDate);
@@ -402,7 +402,7 @@ export class BipService {
     if (startDate || endDate) {
       query.orderDate = {};
       if (startDate) {
-        query.orderDate.$gte = new Date(startDate);
+        query.orderDate.$gte = startDate;
       }
       if (endDate) {
         const end = new Date(endDate);
