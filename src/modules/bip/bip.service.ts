@@ -335,11 +335,10 @@ export class BipService {
     const skip = (page - 1) * limit;
     const query: any = { isDeleted: false };
 
-    // Store search conditions for later
-    let searchConditions: any[] | null = null;
+    // Add search filter - search across multiple fields
     if (search && search.trim()) {
       const searchRegex = { $regex: search.trim(), $options: 'i' };
-      searchConditions = [
+      query.$or = [
         { customerName: searchRegex },
         { cnic: searchRegex },
         { eforms: searchRegex },
@@ -399,42 +398,17 @@ export class BipService {
       query.bankId = new Types.ObjectId(bankId);
     }
 
-    // Add date range filter (for orderDate OR createdAt when no status filter)
-    let dateConditions: any[] | null = null;
+    // Add date range filter (for orderDate)
     if (startDate || endDate) {
-      const dateQuery: any = {};
+      query.orderDate = {};
       if (startDate) {
-        dateQuery.$gte = startDate;
+        query.orderDate.$gte = startDate;
       }
       if (endDate) {
         const end = new Date(endDate);
         end.setHours(23, 59, 59, 999); // Include entire end date
-        dateQuery.$lte = end;
+        query.orderDate.$lte = end;
       }
-
-      // If no status filter is active, match orderDate OR createdAt
-      if (!status && !statusFilter) {
-        dateConditions = [
-          { orderDate: dateQuery },
-          { createdAt: dateQuery }
-        ];
-      } else {
-        // If status filter is active, only filter by orderDate
-        query.orderDate = dateQuery;
-      }
-    }
-
-    // Combine search and date conditions properly
-    if (searchConditions && dateConditions) {
-      // Both search and date need OR conditions, combine with AND
-      query.$and = query.$and || [];
-      query.$and.push({ $or: searchConditions }, { $or: dateConditions });
-    } else if (searchConditions) {
-      // Only search needs OR
-      query.$or = searchConditions;
-    } else if (dateConditions) {
-      // Only date needs OR
-      query.$or = dateConditions;
     }
 
     const [data, total] = await Promise.all([
