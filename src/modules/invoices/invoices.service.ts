@@ -6,6 +6,7 @@ import { Bip } from '@modules/bip/schemas/bip.schema';
 import { PurchaseOrder } from '@modules/purchase-orders/schemas/purchase-order.schema';
 import { Bank } from '@modules/banks/schemas/bank.schema';
 import { OrderStatus } from '@common/enums/order-status.enum';
+import { InvoiceOrderType } from './dto/generate-invoice.dto';
 import * as ExcelJS from 'exceljs';
 
 @Injectable()
@@ -21,6 +22,7 @@ export class InvoicesService {
     bankId: string,
     startDate: string,
     endDate: string,
+    orderType: InvoiceOrderType,
   ): Promise<ExcelJS.Buffer> {
     // Validate bank exists
     const bank = await this.bankModel.findOne({
@@ -38,20 +40,40 @@ export class InvoicesService {
     end.setHours(23, 59, 59, 999);
 
     // Get all dispatched orders for this bank within date range
-    const dispatchedOrders = await this.bankOrderModel
-      .find({
-        bankId: new Types.ObjectId(bankId),
-        status: OrderStatus.DISPATCH,
-        isDeleted: false,
-        orderDate: {
-          $gte: start,
-          $lte: end,
-        },
-      })
-      .populate('productId', 'name')
-      .populate('shipmentId', 'trackingNumber consignmentNumber')
-      .sort({ orderDate: 1 })
-      .exec();
+    let dispatchedOrders: any[];
+
+    if (orderType === InvoiceOrderType.BANK_ORDERS) {
+      dispatchedOrders = await this.bankOrderModel
+        .find({
+          bankId: new Types.ObjectId(bankId),
+          status: OrderStatus.DISPATCH,
+          isDeleted: false,
+          orderDate: {
+            $gte: start,
+            $lte: end,
+          },
+        })
+        .populate('productId', 'name')
+        .populate('shipmentId', 'trackingNumber consignmentNumber')
+        .sort({ orderDate: 1 })
+        .exec();
+    } else {
+      // BIP Orders
+      dispatchedOrders = await this.bipModel
+        .find({
+          bankId: new Types.ObjectId(bankId),
+          status: OrderStatus.DISPATCH,
+          isDeleted: false,
+          orderDate: {
+            $gte: start,
+            $lte: end,
+          },
+        })
+        .populate('productId', 'name')
+        .populate('shipmentId', 'trackingNumber consignmentNumber')
+        .sort({ orderDate: 1 })
+        .exec();
+    }
 
     // Group orders by PO number
     const ordersByPO = new Map<string, any[]>();
@@ -83,8 +105,9 @@ export class InvoicesService {
     const worksheet = workbook.addWorksheet('Invoice');
 
     // Add header information
+    const orderTypeLabel = orderType === InvoiceOrderType.BANK_ORDERS ? 'Bank Orders' : 'BIP Orders';
     worksheet.mergeCells('A1:H1');
-    worksheet.getCell('A1').value = `Invoice - ${bank.bankName}`;
+    worksheet.getCell('A1').value = `Invoice - ${bank.bankName} (${orderTypeLabel})`;
     worksheet.getCell('A1').font = { size: 16, bold: true };
     worksheet.getCell('A1').alignment = { horizontal: 'center' };
 
@@ -95,11 +118,12 @@ export class InvoicesService {
 
     worksheet.addRow([]); // Empty row
 
-    // Add column headers
+    // Add column headers (different for BIP orders)
+    const refLabel = orderType === InvoiceOrderType.BANK_ORDERS ? 'Ref No' : 'E-Forms';
     const headerRow = worksheet.addRow([
       'PO Number',
       'Order Date',
-      'Ref No',
+      refLabel,
       'Customer Name',
       'Product',
       'Quantity',
@@ -128,12 +152,21 @@ export class InvoicesService {
             (order.shipmentId as any).trackingNumber
           : 'N/A';
 
+        // Handle different fields for bank orders vs BIP orders
+        const refNumber = orderType === InvoiceOrderType.BANK_ORDERS
+          ? order.refNo
+          : order.eforms;
+
+        const productName = orderType === InvoiceOrderType.BANK_ORDERS
+          ? `${order.brand} ${order.product}`
+          : order.product;
+
         worksheet.addRow([
           poNumber,
           order.orderDate ? new Date(order.orderDate).toLocaleDateString() : '',
-          order.refNo,
+          refNumber,
           order.customerName,
-          `${order.brand} ${order.product}`,
+          productName,
           order.qty,
           trackingNumber,
           vendorName,

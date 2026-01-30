@@ -52,10 +52,12 @@ export class InvoicesController {
       generateInvoiceDto.bankId,
       generateInvoiceDto.startDate,
       generateInvoiceDto.endDate,
+      generateInvoiceDto.orderType,
     );
 
     // Set response headers for file download
-    const filename = `Invoice_${generateInvoiceDto.startDate}_to_${generateInvoiceDto.endDate}.xlsx`;
+    const orderTypeLabel = generateInvoiceDto.orderType === 'bank_orders' ? 'BankOrders' : 'BIPOrders';
+    const filename = `Invoice_${orderTypeLabel}_${generateInvoiceDto.startDate}_to_${generateInvoiceDto.endDate}.xlsx`;
     res.setHeader(
       'Content-Type',
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
