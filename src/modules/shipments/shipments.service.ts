@@ -39,6 +39,36 @@ export class ShipmentsService {
     private whatsAppService: WhatsAppService,
   ) {}
 
+  /**
+   * Format phone number to ensure it starts with +92 (Pakistan country code)
+   * @param phone - The phone number to format
+   * @returns Formatted phone number with +92 prefix
+   */
+  private formatPhoneNumber(phone: string): string {
+    if (!phone) return '';
+
+    // Remove all spaces and hyphens
+    let cleanPhone = phone.replace(/[\s-]/g, '');
+
+    // If already starts with +92, return as is
+    if (cleanPhone.startsWith('+92')) {
+      return cleanPhone;
+    }
+
+    // If starts with 92 (without +), add +
+    if (cleanPhone.startsWith('92')) {
+      return `+${cleanPhone}`;
+    }
+
+    // If starts with 0 (local format like 03XX), replace 0 with +92
+    if (cleanPhone.startsWith('0')) {
+      return `+92${cleanPhone.substring(1)}`;
+    }
+
+    // Otherwise, add +92 prefix
+    return `+92${cleanPhone}`;
+  }
+
   async dispatchBankOrder(
     bankOrderId: string,
     dispatchDto: DispatchOrderDto,
@@ -173,7 +203,7 @@ export class ShipmentsService {
     // Send WhatsApp dispatch notification
     try {
       await this.whatsAppService.sendWhatsAppDirectFormat({
-        phone: bankOrder.mobile1,
+        phone: this.formatPhoneNumber(bankOrder.mobile1),
         email: '',
         first_name: bankOrder.customerName,
         last_name: '',
@@ -337,7 +367,7 @@ export class ShipmentsService {
     // Send WhatsApp dispatch notification
     try {
       await this.whatsAppService.sendWhatsAppDirectFormat({
-        phone: bipOrder.mobile1,
+        phone: this.formatPhoneNumber(bipOrder.mobile1),
         email: '',
         first_name: bipOrder.customerName,
         last_name: '',
@@ -470,7 +500,7 @@ export class ShipmentsService {
     // Send WhatsApp dispatch notification
     try {
       await this.whatsAppService.sendWhatsAppDirectFormat({
-        phone: bankOrder.mobile1,
+        phone: this.formatPhoneNumber(bankOrder.mobile1),
         email: '',
         first_name: bankOrder.customerName,
         last_name: '',
@@ -603,7 +633,7 @@ export class ShipmentsService {
     // Send WhatsApp dispatch notification
     try {
       await this.whatsAppService.sendWhatsAppDirectFormat({
-        phone: bipOrder.mobile1,
+        phone: this.formatPhoneNumber(bipOrder.mobile1),
         email: '',
         first_name: bipOrder.customerName,
         last_name: '',
